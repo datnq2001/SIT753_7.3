@@ -257,7 +257,7 @@ MAINTENANCE_MODE=false
                             find . -name "*.js" -not -path "./node_modules/*" | xargs wc -l > complexity-report.txt
                             
                             # Check file sizes
-                            find . -name "*.js" -not -path "./node_modules/*" -exec du -h {} \; >> complexity-report.txt
+                            find . -name "*.js" -not -path "./node_modules/*" -exec du -h {} \\; >> complexity-report.txt
                             
                             echo "Code complexity analysis completed"
                         '''
