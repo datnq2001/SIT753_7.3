@@ -115,8 +115,7 @@ pipeline {
                     def snykToken = env.SNYK_TOKEN ?: ''
                     
                     writeFile file: '.env', text: """
-writeFile file: '.env', text: """
-NODE_ENV=${NODE_ENV}
+                    writeFile file: '.env', text: """NODE_ENV=${NODE_ENV}
 PORT=3000
 
 DB_PATH=./mySurveyDB.db
@@ -134,6 +133,17 @@ ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
 
 SNYK_TOKEN=${snykToken}
 """
+                }
+                
+                sh '''
+                    echo "📦 Installing dependencies..."
+                    npm ci
+                    
+                    echo "🗄️ Setting up database..."
+                    node createDB.js
+                    
+                    echo "🔧 Verifying environment configuration..."
+                    node -e "console.log(\\'Environment check:\\', require(\\'./config/env\\').init().config.app.name)"
 """
                 }
                 
