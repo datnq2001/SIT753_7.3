@@ -491,7 +491,14 @@ MAINTENANCE_MODE=false
                 
                 sh '''
                     # Check file permissions
-                    find . -name "*.js" -perm 777 && exit 1 || echo "File permissions OK"
+                    DANGEROUS_FILES=$(find . -name "*.js" -perm 777)
+                    if [ -n "$DANGEROUS_FILES" ]; then
+                        echo "⚠️ Found files with dangerous permissions (777):"
+                        echo "$DANGEROUS_FILES"
+                        exit 1
+                    else
+                        echo "✅ File permissions OK - no executable JavaScript files found"
+                    fi
                     
                     # Check for sensitive data in files
                     if grep -r "password\\|secret\\|key" --include="*.js" --exclude-dir=node_modules . | grep -v "process.env" | grep -v "config."; then
