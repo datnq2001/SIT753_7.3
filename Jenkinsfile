@@ -26,7 +26,7 @@ pipeline {
         PRODUCTION_HOST = 'localhost'
         
         // Monitoring & Notifications
-        NOTIFICATION_EMAIL = 'your-email@domain.com'
+        NOTIFICATION_EMAIL = 'datnq2001@gmail.com'
         
         // Quality gates
         COVERAGE_THRESHOLD = '80'
@@ -106,7 +106,7 @@ RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 SUBMIT_RATE_LIMIT_MAX=5
 
-ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
 
 SNYK_TOKEN=
 
