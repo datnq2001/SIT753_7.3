@@ -114,7 +114,6 @@ pipeline {
                     def encryptionKey = env.ENCRYPTION_KEY ?: 'default-encryption-key-change-in-production'
                     def snykToken = env.SNYK_TOKEN ?: ''
                     
-                    writeFile file: '.env', text: """
                     writeFile file: '.env', text: """NODE_ENV=${NODE_ENV}
 PORT=3000
 
@@ -134,6 +133,22 @@ ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
 SNYK_TOKEN=${snykToken}
 """
                 }
+                
+                sh '''
+                    echo "📦 Installing dependencies..."
+                    npm ci
+                    
+                    echo "🗄️ Setting up database..."
+                    node createDB.js
+                    
+                    echo "🔧 Verifying environment configuration..."
+                    node -e "console.log('Environment check:', require('./config/env').init().config.app.name)"
+                    
+                    echo "📋 Dependency audit..."
+                    npm audit --audit-level moderate || true
+                    
+                    echo "🚀 Build completed successfully"
+                '''
                 
                 sh '''
                     echo "📦 Installing dependencies..."
