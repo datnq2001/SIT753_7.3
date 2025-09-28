@@ -6,23 +6,29 @@ pipeline {
         nodejs 'node24'
     }
     
+    // Environment                    echo "Setting up database..."va                    echo "Verifying environment configuration..."iables and credentials
     environment {
-        NODE_ENV = 'development'
+        NODE_ENV = 'development'  // Use development mode for CI/CD to bypass production validation
         APP_NAME = 'dkin-butterfly-club'
-        BU                        sh '''
-                            for doc in README.md ENVIRONMENT_SETUP.md SECURITY_HARDENING.md; do
-                                if [ -f "$doc" ]; then
-                                    echo "Found: $doc"
-                                else
-                                    echo "Missing: $doc"
-                                fi
-                            done
-                            wc -l *.md > documentation-report.txt
-                        '''${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'unknown'}"
+        BUILD_VERSION = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'unknown'}"
         
+        // Jenkins credentials (configure these in Jenkins Credentials - optional)
+        // GITHUB_TOKEN = credentials('github-token')  // Optional
+        // SNYK_TOKEN = credentials('snyk-token')      // Optional
+        
+        // Application secrets (optional - will use defaults if not configured)
+        // JWT_SECRET = credentials('jwt-secret')         // Optional
+        // SESSION_SECRET = credentials('session-secret') // Optional  
+        // ENCRYPTION_KEY = credentials('encryption-key') // Optional
+        
+        // Deployment configuration
         STAGING_HOST = 'localhost'
         PRODUCTION_HOST = 'localhost'
+        
+        // Monitoring & Notifications
         NOTIFICATION_EMAIL = 'datnq2001@gmail.com'
+        
+        // Quality gates
         COVERAGE_THRESHOLD = '80'
         SECURITY_THRESHOLD = 'medium'
     }
@@ -43,17 +49,30 @@ pipeline {
     }
     
     stages {
+        // ==================== STAGE 1: CHECKOUT ====================
         stage('Checkout') {
             steps {
                 echo 'Checking out source code from GitHub...'
                 checkout scm
                 
                 script {
-                    env.GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    env.GIT_BRANCH_NAME = sh(script: "git rev-parse --abbrev-ref HEAD", returnStdout: true).trim()
+                    // Set build metadata
+                    env.GIT_COMMIT_SHORT = sh(
+                        script: "git rev-parse --short HEAD",
+                        returnStdout: true
+                    ).trim()
+                    
+                    env.GIT_BRANCH_NAME = sh(
+                        script: "git rev-parse --abbrev-ref HEAD",
+                        returnStdout: true
+                    ).trim()
+                    
                     env.BUILD_VERSION = "${env.BUILD_NUMBER}-${env.GIT_COMMIT_SHORT}"
                     
-                    echo "Build Info: ${env.BUILD_VERSION} (${env.GIT_BRANCH_NAME}:${env.GIT_COMMIT_SHORT})"
+                    echo "Build Info:"
+                    echo "   Version: ${env.BUILD_VERSION}"
+                    echo "   Branch: ${env.GIT_BRANCH_NAME}"
+                    echo "   Commit: ${env.GIT_COMMIT_SHORT}"
                 }
             }
             post {
@@ -66,11 +85,13 @@ pipeline {
             }
         }
         
+        // ==================== STAGE 2: BUILD ====================
         stage('Build') {
             steps {
                 echo 'Building application...'
                 
                 script {
+                    // Create .env file with default values  
                     writeFile file: '.env', text: """NODE_ENV=${NODE_ENV}
 PORT=3000
 
@@ -103,10 +124,19 @@ MAINTENANCE_MODE=false
                 }
                 
                 sh '''
+                    echo "Installing dependencies..."
                     npm ci
+                    
+                    echo "�️ Setting up database..."
                     node createDB.js
+                    
+                    echo "�🔍 Verifying environment configuration..."
                     node -e "console.log('Environment check:', require('./config/env').init().config.app.name)"
+                    
+                    echo "Dependency audit..."
                     npm audit --audit-level moderate || true
+                    
+                    echo "Build completed successfully"
                 '''
             }
             post {
@@ -119,15 +149,23 @@ MAINTENANCE_MODE=false
             }
         }
         
+        // ==================== STAGE 3: TEST ====================
         stage('Test') {
             parallel {
                 stage('Unit Tests') {
                     steps {
                         echo 'Running unit tests...'
                         sh '''
+                            echo "Creating test environment..."
                             cp .env.example .env.test
+                            
+                            echo "Running validation tests..."
                             node demo_validation.js
+                            
+                            echo "Running custom validation tests..."
                             node test_validation.js > test-results.txt || true
+                            
+                            echo "Unit tests completed"
                         '''
                     }
                     post {
@@ -141,13 +179,20 @@ MAINTENANCE_MODE=false
                     steps {
                         echo 'Running integration tests...'
                         sh '''
+                            echo "Starting server for integration tests..."
                             timeout 30 node index.js &
                             SERVER_PID=$!
+                            
+                            echo "Waiting for server to start..."
                             sleep 10
                             
+                            echo "Running health checks..."
                             curl -f http://localhost:3000/ || echo "Health check failed"
+                            
+                            echo "Testing survey endpoint..."
                             curl -f http://localhost:3000/surveys || echo "Surveys endpoint test failed"
                             
+                            echo "Stopping test server..."
                             kill $SERVER_PID || true
                             sleep 2
                         '''
@@ -158,7 +203,12 @@ MAINTENANCE_MODE=false
                     steps {
                         echo 'Running performance tests...'
                         sh '''
+                            echo "Performance baseline check..."
+                            # Basic performance metrics
+                            echo "Memory usage check..."
                             node -e "console.log('Memory usage:', process.memoryUsage())"
+                            
+                            echo "Performance tests completed"
                         '''
                     }
                 }
@@ -173,6 +223,7 @@ MAINTENANCE_MODE=false
             }
         }
         
+        // ==================== STAGE 4: CODE QUALITY ====================
         stage('Code Quality') {
             parallel {
                 stage('ESLint Analysis') {
@@ -206,8 +257,15 @@ MAINTENANCE_MODE=false
                     steps {
                         echo 'Analyzing code complexity...'
                         sh '''
+                            echo "Analyzing code complexity..."
+                            
+                            # Count lines of code
                             find . -name "*.js" -not -path "./node_modules/*" | xargs wc -l > complexity-report.txt
+                            
+                            # Check file sizes
                             find . -name "*.js" -not -path "./node_modules/*" -exec du -h {} \\; >> complexity-report.txt
+                            
+                            echo "Code complexity analysis completed"
                         '''
                     }
                     post {
@@ -253,16 +311,26 @@ MAINTENANCE_MODE=false
             }
         }
         
+        // ==================== STAGE 5: SECURITY ====================
         stage('Security') {
             parallel {
                 stage('Vulnerability Scanning') {
                     steps {
                         echo 'Running security vulnerability scan...'
                         sh '''
+                            # Install and run Snyk security scanner
                             npm install -g snyk || true
+                            
+                            # Authenticate with Snyk
                             snyk auth ${SNYK_TOKEN} || echo "Snyk auth failed, using demo mode"
+                            
+                            # Test for vulnerabilities
                             snyk test --json > snyk-vulnerabilities.json || echo "Snyk scan completed with issues"
+                            
+                            # Monitor project
                             snyk monitor --project-name="${APP_NAME}" || true
+                            
+                            echo "Vulnerability scanning completed"
                         '''
                     }
                     post {
@@ -276,12 +344,16 @@ MAINTENANCE_MODE=false
                     steps {
                         echo 'Scanning for hardcoded secrets...'
                         sh '''
+                            echo "Scanning for potential secrets..."
+                            
+                            # Check for hardcoded secrets (excluding config files)
                             if grep -r "password\\|secret\\|key\\|token" --include="*.js" --exclude-dir=node_modules --exclude-dir=config . | grep -v "process.env" | grep -v "example"; then
                                 echo "Warning: Potential hardcoded secrets found" > secret-scan.txt
                             else
                                 echo "No hardcoded secrets detected" > secret-scan.txt
                             fi
                             
+                            # Check .env is not committed
                             if git ls-files | grep -q "^.env$"; then
                                 echo "Warning: .env file found in git" >> secret-scan.txt
                             else
@@ -302,9 +374,18 @@ MAINTENANCE_MODE=false
                     steps {
                         echo 'Running security audit...'
                         sh '''
+                            echo "Running security hardening checks..."
+                            
+                            # Make security audit script executable
                             chmod +x security_audit.sh
+                            
+                            # Run security audit
                             ./security_audit.sh > security-audit-report.txt || echo "Security audit completed with warnings"
+                            
+                            # Check file permissions
                             find . -name "*.js" -perm 777 > dangerous-permissions.txt || echo "No dangerous permissions found" > dangerous-permissions.txt
+                            
+                            echo "Security audit completed"
                         '''
                     }
                     post {
@@ -324,6 +405,7 @@ MAINTENANCE_MODE=false
             }
         }
         
+        // ==================== STAGE 6: DEPLOY ====================
         stage('Deploy') {
             parallel {
                 stage('Deploy to Staging') {
@@ -339,8 +421,12 @@ MAINTENANCE_MODE=false
                         echo 'Deploying to staging environment...'
                         
                         sh '''
+                            echo "Preparing staging deployment..."
+                            
+                            # Create staging directory
                             mkdir -p staging-deploy
                             
+                            # Copy application files
                             cp -r views staging-deploy/
                             cp -r schemas staging-deploy/
                             cp -r middleware staging-deploy/
@@ -352,6 +438,7 @@ MAINTENANCE_MODE=false
                             
                             echo "Deploying to staging server: ${STAGING_HOST}"
                             
+                            # Deployment verification
                             if [ -f "staging-deploy/index.js" ]; then
                                 echo "Staging deployment successful"
                             else
@@ -374,6 +461,9 @@ MAINTENANCE_MODE=false
                     steps {
                         echo 'Running smoke tests...'
                         sh '''
+                            echo "Running smoke tests on deployed application..."
+                            
+                            # Test environment validation
                             cd staging-deploy && node -e "
                                 try {
                                     const { config } = require('./config/env').init();
@@ -384,6 +474,8 @@ MAINTENANCE_MODE=false
                                     process.exit(1);
                                 }
                             "
+                            
+                            echo "Smoke tests passed"
                         '''
                     }
                 }
@@ -398,6 +490,7 @@ MAINTENANCE_MODE=false
             }
         }
         
+        // ==================== STAGE 7: RELEASE & MONITORING ====================
         stage('Release') {
             when {
                 branch 'main'
@@ -429,7 +522,10 @@ MAINTENANCE_MODE=false
                     # Create release directory
                     mkdir -p production-release
                     
+                    # Copy staging deployment to production
                     cp -r staging-deploy/* production-release/
+                    
+                    # Create version file
                     echo "{
   \\"version\\": \\"${BUILD_VERSION}\\",
   \\"buildDate\\": \\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\",
@@ -438,7 +534,10 @@ MAINTENANCE_MODE=false
   \\"strategy\\": \\"${DEPLOYMENT_STRATEGY}\\"
 }" > production-release/version.json
                     
+                    # Create release package
                     tar -czf "${APP_NAME}-${BUILD_VERSION}.tar.gz" -C production-release .
+                    
+                    echo "Simulating production deployment..."
                     
                     if [ -f "production-release/version.json" ]; then
                         echo "Production release successful"
@@ -522,13 +621,20 @@ MAINTENANCE_MODE=false
                     steps {
                         echo 'Setting up health monitoring...'
                         sh '''
+                            echo "Configuring health checks..."
+                            
+                            # Create health check script
                             cat > monitoring/health-check.sh << 'EOF'
 #!/bin/bash
 echo "Health check for ${APP_NAME} v${BUILD_VERSION}"
 echo "Timestamp: $(date)"
 curl -f http://localhost:3000/ -o /dev/null -s -w "HTTP Status: %{http_code}, Response Time: %{time_total}s\\n" || echo "Health check failed"
+echo "Health check completed"
 EOF
+                            
                             chmod +x monitoring/health-check.sh
+                            
+                            echo "Health monitoring configured"
                         '''
                     }
                 }
@@ -537,6 +643,9 @@ EOF
                     steps {
                         echo 'Setting up monitoring alerts...'
                         sh '''
+                            echo "Configuring monitoring alerts..."
+                            
+                            # Create alerting configuration
                             echo "{
   \\"alerts\\": {
     \\"response_time\\": {
@@ -556,6 +665,8 @@ EOF
     }
   }
 }" > monitoring/alert-config.json
+                            
+                            echo "Alert configuration created"
                         '''
                     }
                 }
@@ -576,9 +687,13 @@ EOF
         always {
             echo 'Pipeline cleanup...'
             
+            // Archive artifacts and clean workspace
             script {
                 try {
+                    // Archive all reports and logs  
                     archiveArtifacts artifacts: '**/*.log,**/*-report.*,**/*.json', allowEmptyArchive: true
+                    
+                    // Clean workspace
                     cleanWs()
                 } catch (Exception e) {
                     echo "Cleanup warning: ${e.getMessage()}"
@@ -589,6 +704,7 @@ EOF
         success {
             echo 'Pipeline completed successfully!'
             
+            // Send success notification
             emailext (
                 subject: "Pipeline Success - ${APP_NAME} #${BUILD_NUMBER}",
                 mimeType: 'text/html',
@@ -620,6 +736,7 @@ EOF
         failure {
             echo 'Pipeline failed!'
             
+            // Send failure notification
             emailext (
                 subject: "Pipeline Failed - ${APP_NAME} #${BUILD_NUMBER}",
                 mimeType: 'text/html',
