@@ -12,14 +12,14 @@ pipeline {
         APP_NAME = 'dkin-butterfly-club'
         BUILD_VERSION = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'unknown'}"
         
-        // Jenkins credentials (configure these in Jenkins Credentials)
-        GITHUB_TOKEN = credentials('github-token')
-        SNYK_TOKEN = credentials('snyk-token')
+        // Jenkins credentials (configure these in Jenkins Credentials - optional)
+        // GITHUB_TOKEN = credentials('github-token')  // Optional
+        // SNYK_TOKEN = credentials('snyk-token')      // Optional
         
-        // Application secrets
-        JWT_SECRET = credentials('jwt-secret')
-        SESSION_SECRET = credentials('session-secret')
-        ENCRYPTION_KEY = credentials('encryption-key')
+        // Application secrets (optional - will use defaults if not configured)
+        // JWT_SECRET = credentials('jwt-secret')         // Optional
+        // SESSION_SECRET = credentials('session-secret') // Optional  
+        // ENCRYPTION_KEY = credentials('encryption-key') // Optional
         
         // Deployment configuration
         STAGING_HOST = 'localhost'
@@ -675,11 +675,20 @@ EOF
         always {
             echo '🧹 Pipeline cleanup...'
             
-            // Archive all reports and logs
-            archiveArtifacts artifacts: '**/*.log,**/*-report.*,**/*.json', allowEmptyArchive: true
-            
-            // Clean workspace
-            cleanWs()
+            // Archive artifacts within node context
+            script {
+                try {
+                    node {
+                        // Archive all reports and logs  
+                        archiveArtifacts artifacts: '**/*.log,**/*-report.*,**/*.json', allowEmptyArchive: true
+                        
+                        // Clean workspace
+                        cleanWs()
+                    }
+                } catch (Exception e) {
+                    echo "Cleanup warning: ${e.getMessage()}"
+                }
+            }
         }
         
         success {
