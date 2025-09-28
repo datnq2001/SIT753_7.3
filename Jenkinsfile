@@ -567,9 +567,7 @@ MAINTENANCE_MODE=false
                                 <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
                                 <p><strong>Build URL:</strong> <a href="${BUILD_URL}">${BUILD_URL}</a></p>
                             """,
-                            to: env.NOTIFICATION_EMAIL,
-                            replyTo: 'datnq2001@gmail.com',
-                            recipientProviders: [requestor()]
+                            to: env.NOTIFICATION_EMAIL
                         )
                     }
                 }
@@ -584,9 +582,7 @@ MAINTENANCE_MODE=false
                             <p><strong>Build:</strong> <a href="${BUILD_URL}">${BUILD_URL}</a></p>
                             <p>Please check the build logs for more details.</p>
                         """,
-                        to: env.NOTIFICATION_EMAIL,
-                        replyTo: 'datnq2001@gmail.com',
-                        recipientProviders: [requestor()]
+                        to: env.NOTIFICATION_EMAIL
                     )
                 }
             }
@@ -710,68 +706,54 @@ EOF
         success {
             echo '✅ Pipeline completed successfully!'
             
-            // Send success notification  
-            try {
-                emailext (
-                    subject: "✅ Pipeline Success - ${APP_NAME} #${BUILD_NUMBER}",
-                    mimeType: 'text/html',
-                    from: 'datnq2001@gmail.com',
-                    body: """
-                        <h3>Pipeline Completed Successfully</h3>
-                        <p><strong>Project:</strong> ${APP_NAME}</p>
-                        <p><strong>Version:</strong> ${BUILD_VERSION}</p>
-                        <p><strong>Branch:</strong> ${GIT_BRANCH_NAME}</p>
-                        <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
-                        <p><strong>Build URL:</strong> <a href="${BUILD_URL}">${BUILD_URL}</a></p>
-                        
-                        <h4>Pipeline Stages:</h4>
-                        <ul>
-                            <li>✅ Checkout</li>
-                            <li>✅ Build</li>
-                            <li>✅ Test</li>
-                            <li>✅ Code Quality</li>
-                            <li>✅ Security</li>
-                            <li>✅ Deploy</li>
-                            <li>✅ Release</li>
-                            <li>✅ Monitoring</li>
-                        </ul>
-                    """,
-                    to: env.NOTIFICATION_EMAIL,
-                    replyTo: 'datnq2001@gmail.com',
-                    recipientProviders: [requestor()]
-                )
-                echo '✅ Success email sent successfully'
-            } catch (Exception e) {
-                echo "⚠️ Warning: Could not send success email: ${e.getMessage()}"
-            }
+            // Send success notification
+            emailext (
+                subject: "✅ Pipeline Success - ${APP_NAME} #${BUILD_NUMBER}",
+                mimeType: 'text/html',
+                from: 'datnq2001@gmail.com',
+                body: """
+                    <h3>Pipeline Completed Successfully</h3>
+                    <p><strong>Project:</strong> ${APP_NAME}</p>
+                    <p><strong>Version:</strong> ${BUILD_VERSION}</p>
+                    <p><strong>Branch:</strong> ${GIT_BRANCH_NAME}</p>
+                    <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
+                    <p><strong>Build URL:</strong> <a href="${BUILD_URL}">${BUILD_URL}</a></p>
+                    
+                    <h4>Pipeline Stages:</h4>
+                    <ul>
+                        <li>✅ Checkout</li>
+                        <li>✅ Build</li>
+                        <li>✅ Test</li>
+                        <li>✅ Code Quality</li>
+                        <li>✅ Security</li>
+                        <li>✅ Deploy</li>
+                        <li>✅ Release</li>
+                        <li>✅ Monitoring</li>
+                    </ul>
+                """,
+                to: env.NOTIFICATION_EMAIL
+            )
         }
         
         failure {
             echo '❌ Pipeline failed!'
             
             // Send failure notification
-            try {
-                emailext (
-                    subject: "❌ Pipeline Failed - ${APP_NAME} #${BUILD_NUMBER}",
-                    mimeType: 'text/html',
-                    from: 'datnq2001@gmail.com',
-                    body: """
-                        <h3>Pipeline Failed</h3>
-                        <p><strong>Project:</strong> ${APP_NAME}</p>
-                        <p><strong>Build:</strong> <a href="${BUILD_URL}">${BUILD_URL}</a></p>
-                        <p><strong>Branch:</strong> ${GIT_BRANCH_NAME}</p>
-                        <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
-                        
-                        <p>Please check the build logs for more details.</p>
-                    """,
-                    to: env.NOTIFICATION_EMAIL,
-                    replyTo: 'datnq2001@gmail.com',
-                    recipientProviders: [requestor()]
-                )
-                echo '✅ Failure email sent successfully'
-            } catch (Exception e) {
-                echo "⚠️ Warning: Could not send failure email: ${e.getMessage()}"
-            }
+            emailext (
+                subject: "❌ Pipeline Failed - ${APP_NAME} #${BUILD_NUMBER}",
+                mimeType: 'text/html',
+                from: 'datnq2001@gmail.com',
+                body: """
+                    <h3>Pipeline Failed</h3>
+                    <p><strong>Project:</strong> ${APP_NAME}</p>
+                    <p><strong>Build:</strong> <a href="${BUILD_URL}">${BUILD_URL}</a></p>
+                    <p><strong>Branch:</strong> ${GIT_BRANCH_NAME}</p>
+                    <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
+                    
+                    <p>Please check the build logs for more details.</p>
+                """,
+                to: env.NOTIFICATION_EMAIL
+            )
         }
         
         unstable {
