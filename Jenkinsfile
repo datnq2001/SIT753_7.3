@@ -17,10 +17,10 @@ pipeline {
         // SNYK_TOKEN = credentials('snyk-token')  // Optional - handled in Security stage
         // SONAR_TOKEN = credentials('sonar-token')  // Optional - handled in Code Quality stage
         
-        // Application secrets
-        JWT_SECRET = credentials('jwt-secret')
-        SESSION_SECRET = credentials('session-secret')
-        ENCRYPTION_KEY = credentials('encryption-key')
+                // Application secrets (will be handled in deployment stages if needed)
+        // JWT_SECRET = credentials('jwt-secret')  // Optional - for production deployment
+        // SESSION_SECRET = credentials('session-secret')  // Optional - for production deployment  
+        // ENCRYPTION_KEY = credentials('encryption-key')  // Optional - for production deployment
         
         // Deployment configuration (SSH key handled in deployment stages)
         STAGING_HOST = 'localhost'
@@ -604,26 +604,21 @@ MAINTENANCE_MODE=false
                         sh "git tag -a v${BUILD_VERSION} -m 'Release version ${BUILD_VERSION}'"
                         
                         // Send success notification
-                        emailext (
-                            subject: "✅ Production Release Successful - ${APP_NAME} v${BUILD_VERSION}",
-                            body: """
-                                <h3>Production Release Deployed Successfully</h3>
-                                <p><strong>Application:</strong> ${APP_NAME}</p>
-                                <p><strong>Version:</strong> ${BUILD_VERSION}</p>
-                                <p><strong>Strategy:</strong> ${params.DEPLOYMENT_STRATEGY}</p>
-                                <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
-                                <p><strong>Build URL:</strong> ${BUILD_URL}</p>
-                            """,
-                            to: env.NOTIFICATION_EMAIL
-                        )
+                        echo "✅ Production Release Successful - ${APP_NAME} v${BUILD_VERSION}"
+                        echo "   Version: ${BUILD_VERSION}"
+                        echo "   Strategy: ${params.DEPLOYMENT_STRATEGY}"
+                        echo "   Build URL: ${BUILD_URL}"
+                        
+                        // Email notifications disabled until SMTP is configured
+                        // emailext (...)
                     }
                 }
                 failure {
-                    emailext (
-                        subject: "❌ Production Release Failed - ${APP_NAME}",
-                        body: "Production release failed. Check build logs: ${BUILD_URL}",
-                        to: env.NOTIFICATION_EMAIL
-                    )
+                    echo "❌ Production Release Failed - ${APP_NAME}"
+                    echo "   Build logs: ${BUILD_URL}"
+                    
+                    // Email notifications disabled until SMTP is configured
+                    // emailext (...)
                 }
             }
         }
@@ -761,18 +756,13 @@ EOF
             post {
                 success {
                     // Notify team of successful deployment
-                    emailext (
-                        subject: "✅ Production Deployment Successful - ${APP_NAME} v${BUILD_VERSION}",
-                        body: """
-                            <h3>Production Deployment Successful</h3>
-                            <p><strong>Application:</strong> ${APP_NAME}</p>
-                            <p><strong>Version:</strong> ${BUILD_VERSION}</p>
-                            <p><strong>Build:</strong> ${BUILD_URL}</p>
-                            <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
-                            <p><strong>Strategy:</strong> ${params.DEPLOYMENT_TYPE}</p>
-                        """,
-                        to: "${env.CHANGE_AUTHOR_EMAIL}, devops@yourdomain.com"
-                    )
+                    echo "✅ Production Deployment Successful - ${APP_NAME} v${BUILD_VERSION}"
+                    echo "   Version: ${BUILD_VERSION}"
+                    echo "   Build: ${BUILD_URL}"
+                    echo "   Strategy: ${params.DEPLOYMENT_TYPE}"
+                    
+                    // Email notifications disabled until SMTP is configured
+                    // emailext (...)
                 }
             }
         }
@@ -785,13 +775,9 @@ EOF
             // Clean workspace - needs node context
             script {
                 try {
-                    // Archive logs first
-                    archiveArtifacts artifacts: '**/*.log', allowEmptyArchive: true
-                    
-                    // Clean workspace if we have node context
-                    if (env.NODE_NAME) {
-                        deleteDir()
-                    }
+                    echo "Starting cleanup process..."
+                    // Note: archiveArtifacts and deleteDir need node context
+                    // These will be handled by individual stage post sections
                 } catch (Exception e) {
                     echo "Cleanup warning: ${e.getMessage()}"
                 }
@@ -808,22 +794,16 @@ EOF
                     def stageName = env.STAGE_NAME ?: 'Unknown Stage'
                     def gitCommit = env.GIT_COMMIT?.take(7) ?: 'unknown'
                     
-                    // Notify team of failure
-                    emailext (
-                        subject: "❌ Pipeline Failed - ${appName} #${buildNum}",
-                        body: """
-                            <h3>Pipeline Failed</h3>
-                            <p><strong>Project:</strong> ${appName}</p>
-                            <p><strong>Build:</strong> ${BUILD_URL}</p>
-                            <p><strong>Stage:</strong> ${stageName}</p>
-                            <p><strong>Commit:</strong> ${gitCommit}</p>
-                            
-                            <p>Please check the build logs for more details.</p>
-                        """,
-                        to: "admin@yourdomain.com"
-                    )
+                    echo "📧 Pipeline Failed - ${appName} #${buildNum}"
+                    echo "   Project: ${appName}"
+                    echo "   Build: ${BUILD_URL}"
+                    echo "   Stage: ${stageName}"
+                    echo "   Commit: ${gitCommit}"
+                    
+                    // Email notifications disabled until SMTP is configured
+                    // emailext (...) 
                 } catch (Exception e) {
-                    echo "Failed to send notification: ${e.getMessage()}"
+                    echo "Failed to process failure notification: ${e.getMessage()}"
                 }
             }
         }
