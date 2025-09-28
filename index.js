@@ -313,8 +313,8 @@ app.use((err, req, res, next) => {
 // Start server with environment configuration
 app.listen(port, host, () => {
   console.log(`${config.app.name} v${config.app.version}`);
-  console.log(`🌐 Server running at http://${host}:${port}`);
-  console.log(`📁 Environment: ${config.nodeEnv}`);
+  console.log(`Server running at http://${host}:${port}`);
+  console.log(`Environment: ${config.nodeEnv}`);
   console.log(`Analytics: ${config.features.enableAnalytics ? 'Enabled' : 'Disabled'}`);
   console.log(`Maintenance Mode: ${config.features.maintenanceMode ? 'ON' : 'OFF'}`);
 });
