@@ -557,13 +557,15 @@ MAINTENANCE_MODE=false
                         // Send success notification
                         emailext (
                             subject: "✅ Production Release Successful - ${APP_NAME} v${BUILD_VERSION}",
+                            mimeType: 'text/html',
+                            from: 'datnq2001@gmail.com',
                             body: """
                                 <h3>Production Release Deployed Successfully</h3>
                                 <p><strong>Application:</strong> ${APP_NAME}</p>
                                 <p><strong>Version:</strong> ${BUILD_VERSION}</p>
                                 <p><strong>Strategy:</strong> ${params.DEPLOYMENT_STRATEGY}</p>
                                 <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
-                                <p><strong>Build URL:</strong> ${BUILD_URL}</p>
+                                <p><strong>Build URL:</strong> <a href="${BUILD_URL}">${BUILD_URL}</a></p>
                             """,
                             to: env.NOTIFICATION_EMAIL
                         )
@@ -572,7 +574,14 @@ MAINTENANCE_MODE=false
                 failure {
                     emailext (
                         subject: "❌ Production Release Failed - ${APP_NAME}",
-                        body: "Production release failed. Check build logs: ${BUILD_URL}",
+                        mimeType: 'text/html',
+                        from: 'datnq2001@gmail.com',
+                        body: """
+                            <h3>Production Release Failed</h3>
+                            <p><strong>Project:</strong> ${APP_NAME}</p>
+                            <p><strong>Build:</strong> <a href="${BUILD_URL}">${BUILD_URL}</a></p>
+                            <p>Please check the build logs for more details.</p>
+                        """,
                         to: env.NOTIFICATION_EMAIL
                     )
                 }
@@ -700,13 +709,15 @@ EOF
             // Send success notification
             emailext (
                 subject: "✅ Pipeline Success - ${APP_NAME} #${BUILD_NUMBER}",
+                mimeType: 'text/html',
+                from: 'datnq2001@gmail.com',
                 body: """
                     <h3>Pipeline Completed Successfully</h3>
                     <p><strong>Project:</strong> ${APP_NAME}</p>
                     <p><strong>Version:</strong> ${BUILD_VERSION}</p>
                     <p><strong>Branch:</strong> ${GIT_BRANCH_NAME}</p>
                     <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
-                    <p><strong>Build URL:</strong> ${BUILD_URL}</p>
+                    <p><strong>Build URL:</strong> <a href="${BUILD_URL}">${BUILD_URL}</a></p>
                     
                     <h4>Pipeline Stages:</h4>
                     <ul>
@@ -730,10 +741,12 @@ EOF
             // Send failure notification
             emailext (
                 subject: "❌ Pipeline Failed - ${APP_NAME} #${BUILD_NUMBER}",
+                mimeType: 'text/html',
+                from: 'datnq2001@gmail.com',
                 body: """
                     <h3>Pipeline Failed</h3>
                     <p><strong>Project:</strong> ${APP_NAME}</p>
-                    <p><strong>Build:</strong> ${BUILD_URL}</p>
+                    <p><strong>Build:</strong> <a href="${BUILD_URL}">${BUILD_URL}</a></p>
                     <p><strong>Branch:</strong> ${GIT_BRANCH_NAME}</p>
                     <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
                     
