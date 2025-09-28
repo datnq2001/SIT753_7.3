@@ -352,7 +352,7 @@ MAINTENANCE_MODE=false
                             fi
                             
                             # Check .env is not committed
-                            if git ls-files | grep -q "^\.env$"; then
+                            if git ls-files | grep -q "^.env$"; then
                                 echo "⚠️ Warning: .env file found in git" >> secret-scan.txt
                             else
                                 echo "✅ .env file properly excluded" >> secret-scan.txt
