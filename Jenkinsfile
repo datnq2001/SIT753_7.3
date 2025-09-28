@@ -6,7 +6,21 @@ pipeline {
         nodejs 'node24'
     }
     
-    // Environment variables and credentials
+    // Environ                sh '''
+                    echo "📦 Installing dependencies..."
+                    npm ci
+                    
+                    echo "🗄️ Setting up database..."
+                    node createDB.js
+                    
+                    echo "� Verifying environment configuration..."
+                    node -e "console.log('Environment check:', require('./config/env').init().config.app.name)"
+                    
+                    echo "📋 Dependency audit..."
+                    npm audit --audit-level moderate || true
+                    
+                    echo "🚀 Build completed successfully"
+                '''es and credentials
     environment {
         NODE_ENV = 'development'  // Use development mode for CI/CD to bypass production validation
         APP_NAME = 'dkin-butterfly-club'
@@ -101,10 +115,11 @@ pipeline {
                     def snykToken = env.SNYK_TOKEN ?: ''
                     
                     writeFile file: '.env', text: """
+writeFile file: '.env', text: """
 NODE_ENV=${NODE_ENV}
 PORT=3000
 
-DB_PATH=./data/production.db
+DB_PATH=./mySurveyDB.db
 DB_TYPE=sqlite3
 
 JWT_SECRET=${jwtSecret}
@@ -118,17 +133,7 @@ SUBMIT_RATE_LIMIT_MAX=5
 ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
 
 SNYK_TOKEN=${snykToken}
-
-APP_NAME=dKin Butterfly Club
-APP_VERSION=${BUILD_VERSION}
-APP_DESCRIPTION=Informative web page on Butterflies from around the world
-
-LOG_LEVEL=info
-LOG_FILE=./logs/app.log
-
-ENABLE_ANALYTICS=true
-ENABLE_EMAIL_NOTIFICATIONS=true
-MAINTENANCE_MODE=false
+"""
 """
                 }
                 
