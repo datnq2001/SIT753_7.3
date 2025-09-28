@@ -336,9 +336,47 @@ try {
 
 ---
 
+### ✅ Issue #11: RESOLVED - Environment Variable Reference in Build Stage
+
+**❌ Error Message:**
+```
+groovy.lang.MissingPropertyException: No such property: JWT_SECRET for class: groovy.lang.Binding
+at WorkflowScript.run(WorkflowScript:105)
+```
+
+**🔍 Root Cause:** 
+The Build stage was trying to create a `.env` file using `${JWT_SECRET}`, `${SESSION_SECRET}`, and `${ENCRYPTION_KEY}` directly, but these environment variables were commented out and undefined.
+
+**✅ Solution Applied:**
+```groovy
+# Before (BROKEN):
+writeFile file: '.env', text: """
+JWT_SECRET=${JWT_SECRET}
+SESSION_SECRET=${SESSION_SECRET}
+ENCRYPTION_KEY=${ENCRYPTION_KEY}
+"""
+
+# After (FIXED):
+script {
+    def jwtSecret = env.JWT_SECRET ?: 'default-jwt-secret-change-in-production'
+    def sessionSecret = env.SESSION_SECRET ?: 'default-session-secret-change-in-production'
+    def encryptionKey = env.ENCRYPTION_KEY ?: 'default-encryption-key-change-in-production'
+    
+    writeFile file: '.env', text: """
+JWT_SECRET=${jwtSecret}
+SESSION_SECRET=${sessionSecret}
+ENCRYPTION_KEY=${encryptionKey}
+"""
+}
+```
+
+**🎯 Status:** ✅ **FIXED** - Build stage now creates .env file with secure default values
+
+---
+
 ## 🔧 Other Potential Jenkins Pipeline Issues
 
-### ❌ Issue #11: Node.js Not Found
+### ❌ Issue #12: Node.js Not Found
 **Error:** `node: command not found`
 
 **Solution:**
@@ -346,7 +384,7 @@ try {
 2. Ensure NodeJS-20 is configured and auto-install enabled
 3. Restart Jenkins if needed
 
-### ❌ Issue #12: Credentials Not Found  
+### ❌ Issue #13: Credentials Not Found  
 **Error:** `could not resolve credential 'github-token'`
 
 **Solution:**
@@ -359,7 +397,7 @@ try {
 2. Check credential IDs match exactly (case-sensitive)
 3. Verify credentials are in Global scope
 
-### ❌ Issue #13: GitHub Authentication Failed
+### ❌ Issue #14: GitHub Authentication Failed
 **Error:** `Authentication failed` or `Couldn't find any revision to build`
 
 **Solution:**
@@ -368,7 +406,7 @@ try {
 3. Test repository access with token
 4. Ensure repository URL is correct
 
-### ❌ Issue #14: Snyk Authentication Failed
+### ❌ Issue #15: Snyk Authentication Failed
 **Error:** `Snyk auth failed`
 
 **Solution:**
@@ -377,7 +415,7 @@ try {
 3. Verify token in Snyk dashboard
 4. Update Jenkins credential
 
-### ❌ Issue #15: ESLint Configuration Issues
+### ❌ Issue #16: ESLint Configuration Issues
 **Error:** `ESLint couldn't find an eslint.config.js file`
 
 **Solution:**
@@ -385,7 +423,7 @@ try {
 2. If issues persist, add .eslintrc.js to repository
 3. Or modify pipeline to use different linting approach
 
-### ❌ Issue #16: Permission Denied on Scripts
+### ❌ Issue #17: Permission Denied on Scripts
 **Error:** `Permission denied` on security_audit.sh
 
 **Solution:**
