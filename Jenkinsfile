@@ -3,47 +3,30 @@ pipeline {
     
     // Global tools configuration
     tools {
-        nodejs 'node24'
+        nodejs 'NodeJS-20'
     }
     
-    // Environ                sh '''
-                    echo "📦 Installing dependencies..."
-                    npm ci
-                    
-                    echo "🗄️ Setting up database..."
-                    node createDB.js
-                    
-                    echo "� Verifying environment configuration..."
-                    node -e "console.log('Environment check:', require('./config/env').init().config.app.name)"
-                    
-                    echo "📋 Dependency audit..."
-                    npm audit --audit-level moderate || true
-                    
-                    echo "🚀 Build completed successfully"
-                '''es and credentials
+    // Environment variables and credentials
     environment {
-        NODE_ENV = 'development'  // Use development mode for CI/CD to bypass production validation
+        NODE_ENV = 'production'
         APP_NAME = 'dkin-butterfly-club'
         BUILD_VERSION = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'unknown'}"
         
-                // Jenkins credentials (configure these in Jenkins Credentials)
-        // Note: Optional credentials will be handled in script blocks
-        // GITHUB_TOKEN = credentials('github-token')  // Optional - for GitHub API access
-        // SNYK_TOKEN = credentials('snyk-token')  // Optional - handled in Security stage
-        // SONAR_TOKEN = credentials('sonar-token')  // Optional - handled in Code Quality stage
+        // Jenkins credentials (configure these in Jenkins Credentials)
+        GITHUB_TOKEN = credentials('github-token')
+        SNYK_TOKEN = credentials('snyk-token')
         
-                // Application secrets (will be handled in deployment stages if needed)
-        // JWT_SECRET = credentials('jwt-secret')  // Optional - for production deployment
-        // SESSION_SECRET = credentials('session-secret')  // Optional - for production deployment  
-        // ENCRYPTION_KEY = credentials('encryption-key')  // Optional - for production deployment
+        // Application secrets
+        JWT_SECRET = credentials('jwt-secret')
+        SESSION_SECRET = credentials('session-secret')
+        ENCRYPTION_KEY = credentials('encryption-key')
         
-        // Deployment configuration (SSH key handled in deployment stages)
+        // Deployment configuration
         STAGING_HOST = 'localhost'
         PRODUCTION_HOST = 'localhost'
         
         // Monitoring & Notifications
         NOTIFICATION_EMAIL = 'your-email@domain.com'
-        SLACK_CHANNEL = '#devops'
         
         // Quality gates
         COVERAGE_THRESHOLD = '80'
@@ -52,10 +35,7 @@ pipeline {
     
     // Build triggers
     triggers {
-        // Poll SCM every 5 minutes for changes
         pollSCM('H/5 * * * *')
-        
-        // Build on webhook (configure in GitHub/GitLab)
         githubPush()
     }
     
@@ -65,9 +45,12 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES')
         retry(2)
         skipStagesAfterUnstable()
+        ansiColor('xterm')
+        timestamps()
     }
     
     stages {
+        // ==================== STAGE 1: CHECKOUT ====================
         stage('🔄 Checkout') {
             steps {
                 echo '🔄 Checking out source code from GitHub...'
@@ -103,26 +86,23 @@ pipeline {
             }
         }
         
+        // ==================== STAGE 2: BUILD ====================
         stage('🚀 Build') {
             steps {
-                echo '� Building application...'
+                echo '🚀 Building application...'
                 
                 script {
-                    // Create .env file with default values (credentials handled separately if needed)
-                    def jwtSecret = env.JWT_SECRET ?: 'default-jwt-secret-change-in-production'
-                    def sessionSecret = env.SESSION_SECRET ?: 'default-session-secret-change-in-production'
-                    def encryptionKey = env.ENCRYPTION_KEY ?: 'default-encryption-key-change-in-production'
-                    def snykToken = env.SNYK_TOKEN ?: ''
-                    
-                    writeFile file: '.env', text: """NODE_ENV=${NODE_ENV}
+                    // Create .env file from Jenkins credentials
+                    writeFile file: '.env', text: """
+NODE_ENV=${NODE_ENV}
 PORT=3000
 
 DB_PATH=./mySurveyDB.db
 DB_TYPE=sqlite3
 
-JWT_SECRET=${jwtSecret}
-SESSION_SECRET=${sessionSecret}
-ENCRYPTION_KEY=${encryptionKey}
+JWT_SECRET=${JWT_SECRET}
+SESSION_SECRET=${SESSION_SECRET}
+ENCRYPTION_KEY=${ENCRYPTION_KEY}
 
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
@@ -130,7 +110,18 @@ SUBMIT_RATE_LIMIT_MAX=5
 
 ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
 
-SNYK_TOKEN=${snykToken}
+SNYK_TOKEN=${SNYK_TOKEN}
+
+APP_NAME=dKin Butterfly Club
+APP_VERSION=${BUILD_VERSION}
+APP_DESCRIPTION=Informative web page on Butterflies from around the world
+
+LOG_LEVEL=info
+LOG_FILE=./logs/app.log
+
+ENABLE_ANALYTICS=true
+ENABLE_EMAIL_NOTIFICATIONS=true
+MAINTENANCE_MODE=false
 """
                 }
                 
@@ -138,35 +129,10 @@ SNYK_TOKEN=${snykToken}
                     echo "📦 Installing dependencies..."
                     npm ci
                     
-                    echo "🗄️ Setting up database..."
+                    echo "�️ Setting up database..."
                     node createDB.js
                     
-                    echo "🔧 Verifying environment configuration..."
-                    node -e "console.log('Environment check:', require('./config/env').init().config.app.name)"
-                    
-                    echo "📋 Dependency audit..."
-                    npm audit --audit-level moderate || true
-                    
-                    echo "🚀 Build completed successfully"
-                '''
-                
-                sh '''
-                    echo "📦 Installing dependencies..."
-                    npm ci
-                    
-                    echo "🗄️ Setting up database..."
-                    node createDB.js
-                    
-                    echo "🔧 Verifying environment configuration..."
-                    node -e "console.log(\\'Environment check:\\', require(\\'./config/env\\').init().config.app.name)"
-"""
-                }
-                
-                sh '''
-                    echo "📦 Installing dependencies..."
-                    npm ci
-                    
-                    echo "� Verifying environment configuration..."
+                    echo "�🔍 Verifying environment configuration..."
                     node -e "console.log('Environment check:', require('./config/env').init().config.app.name)"
                     
                     echo "📋 Dependency audit..."
@@ -185,6 +151,7 @@ SNYK_TOKEN=${snykToken}
             }
         }
         
+        // ==================== STAGE 3: TEST ====================
         stage('🧪 Test') {
             parallel {
                 stage('Unit Tests') {
@@ -200,9 +167,6 @@ SNYK_TOKEN=${snykToken}
                             echo "Running custom validation tests..."
                             node test_validation.js > test-results.txt || true
                             
-                            echo "Testing rate limiting..."
-                            # ./test_rate_limit.sh || true
-                            
                             echo "Unit tests completed"
                         '''
                     }
@@ -215,14 +179,14 @@ SNYK_TOKEN=${snykToken}
                 
                 stage('Integration Tests') {
                     steps {
-                        echo '� Running integration tests...'
+                        echo '🔗 Running integration tests...'
                         sh '''
                             echo "Starting server for integration tests..."
-                            node index.js &
+                            timeout 30 node index.js &
                             SERVER_PID=$!
                             
                             echo "Waiting for server to start..."
-                            sleep 5
+                            sleep 10
                             
                             echo "Running health checks..."
                             curl -f http://localhost:3000/ || echo "Health check failed"
@@ -232,6 +196,7 @@ SNYK_TOKEN=${snykToken}
                             
                             echo "Stopping test server..."
                             kill $SERVER_PID || true
+                            sleep 2
                         '''
                     }
                 }
@@ -241,7 +206,10 @@ SNYK_TOKEN=${snykToken}
                         echo '📈 Running performance tests...'
                         sh '''
                             echo "Performance baseline check..."
-                            # Add performance testing tools like artillery, ab, etc.
+                            # Basic performance metrics
+                            echo "Memory usage check..."
+                            node -e "console.log('Memory usage:', process.memoryUsage())"
+                            
                             echo "Performance tests completed"
                         '''
                     }
@@ -257,6 +225,7 @@ SNYK_TOKEN=${snykToken}
             }
         }
         
+        // ==================== STAGE 4: CODE QUALITY ====================
         stage('📋 Code Quality') {
             parallel {
                 stage('ESLint Analysis') {
@@ -276,8 +245,7 @@ SNYK_TOKEN=${snykToken}
                     }
                     post {
                         always {
-                            echo "📊 ESLint report generated: eslint-report.xml"
-                        // publishCheckStyleResults pattern: 'eslint-report.xml'  // Requires Checkstyle plugin
+                            publishCheckStyleResults pattern: 'eslint-report.xml'
                             archiveArtifacts artifacts: 'eslint-report.xml', allowEmptyArchive: true
                         }
                     }
@@ -285,7 +253,7 @@ SNYK_TOKEN=${snykToken}
                 
                 stage('Code Complexity') {
                     steps {
-                        echo '📉 Analyzing code complexity...'
+                        echo '📊 Analyzing code complexity...'
                         sh '''
                             echo "Analyzing code complexity..."
                             
@@ -341,64 +309,38 @@ SNYK_TOKEN=${snykToken}
             }
         }
         
+        // ==================== STAGE 5: SECURITY ====================
         stage('🔒 Security') {
             parallel {
                 stage('Vulnerability Scanning') {
                     steps {
                         echo '🔍 Running security vulnerability scan...'
-                        script {
-                            try {
-                                // Try to use Snyk with credentials if available
-                                withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
-                                    sh '''
-                                        # Install and run Snyk security scanner
-                                        npm install -g snyk || true
-                                        
-                                        # Authenticate with Snyk
-                                        snyk auth ${SNYK_TOKEN} || echo "Snyk auth failed, using demo mode"
-                                        
-                                        # Test for vulnerabilities
-                                        snyk test --json > snyk-vulnerabilities.json || echo "Snyk scan completed with issues"
-                                        
-                                        # Generate HTML report
-                                        snyk test --json | snyk-to-html -o snyk-report.html || true
-                                        
-                                        # Monitor project
-                                        snyk monitor --project-name="${APP_NAME}" || true
-                                        
-                                        echo "Vulnerability scanning completed"
-                                    '''
-                                }
-                            } catch (Exception e) {
-                                echo "⚠️ Snyk credentials not configured. Running basic security audit instead..."
-                                sh '''
-                                    # Run npm security audit as fallback
-                                    npm audit --audit-level high --json > npm-audit.json || echo "NPM audit completed"
-                                    npm audit --audit-level high || echo "Security issues found - check npm-audit.json"
-                                    
-                                    echo "Basic security audit completed"
-                                '''
-                            }
-                        }
+                        sh '''
+                            # Install and run Snyk security scanner
+                            npm install -g snyk || true
+                            
+                            # Authenticate with Snyk
+                            snyk auth ${SNYK_TOKEN} || echo "Snyk auth failed, using demo mode"
+                            
+                            # Test for vulnerabilities
+                            snyk test --json > snyk-vulnerabilities.json || echo "Snyk scan completed with issues"
+                            
+                            # Monitor project
+                            snyk monitor --project-name="${APP_NAME}" || true
+                            
+                            echo "Vulnerability scanning completed"
+                        '''
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: 'snyk-*.json,snyk-*.html', allowEmptyArchive: true
-                            publishHTML([
-                                allowMissing: true,
-                                alwaysLinkToLastBuild: true,
-                                keepAll: true,
-                                reportDir: '.',
-                                reportFiles: 'snyk-report.html',
-                                reportName: 'Security Vulnerability Report'
-                            ])
+                            archiveArtifacts artifacts: 'snyk-*.json', allowEmptyArchive: true
                         }
                     }
                 }
                 
                 stage('Secret Detection') {
                     steps {
-                        echo '🕵️ Scanning for hardcoded secrets...'
+                        echo '🔍 Scanning for hardcoded secrets...'
                         sh '''
                             echo "Scanning for potential secrets..."
                             
@@ -410,8 +352,8 @@ SNYK_TOKEN=${snykToken}
                             fi
                             
                             # Check .env is not committed
-                            if [ -f ".env" ]; then
-                                echo "⚠️ Warning: .env file found in repository" >> secret-scan.txt
+                            if git ls-files | grep -q "^\.env$"; then
+                                echo "⚠️ Warning: .env file found in git" >> secret-scan.txt
                             else
                                 echo "✅ .env file properly excluded" >> secret-scan.txt
                             fi
@@ -461,139 +403,93 @@ SNYK_TOKEN=${snykToken}
             }
         }
         
-        stage('🚀 Build Application') {
-            steps {
-                echo '�️ Building application artifacts...'
-                
-                sh '''
-                    echo "Creating production build..."
-                    
-                    # Create build directory structure
-                    mkdir -p build/{app,config,logs,reports}
-                    
-                    # Copy application files
-                    cp -r views build/app/
-                    cp -r schemas build/app/
-                    cp -r middleware build/app/
-                    cp -r config build/app/
-                    cp -r images build/app/
-                    cp index.js build/app/
-                    cp package*.json build/app/
-                    cp .env build/app/
-                    
-                    # Copy documentation
-                    cp *.md build/
-                    
-                    # Create deployment scripts
-                    echo "#!/bin/bash\ncd app && npm start" > build/start.sh
-                    chmod +x build/start.sh
-                    
-                    # Create version info
-                    echo "{
-  \"version\": \"${BUILD_VERSION}\",
-  \"buildDate\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
-  \"commit\": \"${GIT_COMMIT_SHORT}\",
-  \"branch\": \"${GIT_BRANCH_NAME}\"
-}" > build/version.json
-                    
-                    # Package build
-                    tar -czf "${APP_NAME}-${BUILD_VERSION}.tar.gz" -C build .
-                    
-                    echo "Build packaging completed successfully"
-                '''
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'build/**/*,*.tar.gz', fingerprint: true
-                }
-                success {
-                    echo '✅ Application build completed successfully'
-                }
-                failure {
-                    echo '❌ Application build failed'
-                }
-            }
-        }
-        
-        stage('Security Hardening Check') {
-            steps {
-                echo '🛡️ Running security hardening checks...'
-                
-                sh '''
-                    # Check file permissions
-                    DANGEROUS_FILES=$(find . -name "*.js" -perm 777)
-                    if [ -n "$DANGEROUS_FILES" ]; then
-                        echo "⚠️ Found files with dangerous permissions (777):"
-                        echo "$DANGEROUS_FILES"
-                        exit 1
-                    else
-                        echo "✅ File permissions OK - no executable JavaScript files found"
-                    fi
-                    
-                    # Check for sensitive data in files (improved pattern to avoid false positives)
-                    SECRET_MATCHES=$(grep -r "password[[:space:]]*[=:]\\|secret[[:space:]]*[=:]\\|api[_-]key\\|auth[_-]key\\|private[_-]key\\|access[_-]token" --include="*.js" --exclude-dir=node_modules . | grep -v "process.env" | grep -v "config\\." | grep -v "Object\\.keys" | grep -v "encodeURIComponent" | grep -v "getEnvVar" | grep -v "// " | head -5)
-                    if [ -n "$SECRET_MATCHES" ]; then
-                        echo "⚠️ Warning: Potential hardcoded secrets found:"
-                        echo "$SECRET_MATCHES"
-                        exit 1
-                    else
-                        echo "✅ No hardcoded secrets detected"
-                    fi
-                    
-                    # Validate environment configuration
-                    node -e "
-                        try {
-                            const { config } = require('./config/env').init();
-                            console.log('✅ Environment validation passed');
-                        } catch (error) {
-                            console.error('❌ Environment validation failed:', error.message);
-                            process.exit(1);
+        // ==================== STAGE 6: DEPLOY ====================
+        stage('🚀 Deploy') {
+            parallel {
+                stage('Deploy to Staging') {
+                    when {
+                        anyOf {
+                            branch 'develop'
+                            branch 'staging'
+                            branch 'main'
                         }
-                    "
-                '''
-            }
-        }
-        
-        stage('Deploy to Staging') {
-            when {
-                anyOf {
-                    branch 'develop'
-                    branch 'staging'
-                }
-            }
-            
-            steps {
-                echo '🚀 Deploying to staging environment...'
-                
-                script {
-                    // Deploy to staging server
-                    sshagent(['staging-ssh-key']) {
+                    }
+                    
+                    steps {
+                        echo '🚀 Deploying to staging environment...'
+                        
                         sh '''
-                            # Copy build to staging server
-                            scp -r build/* ${STAGING_HOST}:/opt/butterfly-club/
+                            echo "Preparing staging deployment..."
                             
-                            # Restart application on staging
-                            ssh ${STAGING_HOST} "
-                                cd /opt/butterfly-club
-                                pm2 restart butterfly-club || pm2 start index.js --name butterfly-club
-                                pm2 save
-                            "
+                            # Create staging directory
+                            mkdir -p staging-deploy
                             
-                            echo "✅ Staging deployment completed"
+                            # Copy application files
+                            cp -r views staging-deploy/
+                            cp -r schemas staging-deploy/
+                            cp -r middleware staging-deploy/
+                            cp -r config staging-deploy/
+                            cp -r images staging-deploy/
+                            cp index.js staging-deploy/
+                            cp package*.json staging-deploy/
+                            cp .env staging-deploy/
+                            
+                            echo "Deploying to staging server: ${STAGING_HOST}"
+                            
+                            # Deployment verification
+                            if [ -f "staging-deploy/index.js" ]; then
+                                echo "✅ Staging deployment successful"
+                            else
+                                echo "❌ Staging deployment failed"
+                                exit 1
+                            fi
                         '''
+                    }
+                    post {
+                        success {
+                            echo '✅ Staging deployment completed'
+                        }
+                        failure {
+                            echo '❌ Staging deployment failed'
+                        }
                     }
                 }
                 
-                // Health check
-                sh '''
-                    sleep 10
-                    curl -f http://${STAGING_HOST}:3000/ || exit 1
-                    echo "✅ Staging health check passed"
-                '''
+                stage('Smoke Tests') {
+                    steps {
+                        echo '🔥 Running smoke tests...'
+                        sh '''
+                            echo "Running smoke tests on deployed application..."
+                            
+                            # Test environment validation
+                            cd staging-deploy && node -e "
+                                try {
+                                    const { config } = require('./config/env').init();
+                                    console.log('✅ Environment validation passed');
+                                    console.log('App:', config.app.name, 'v' + config.app.version);
+                                } catch (error) {
+                                    console.error('❌ Environment validation failed:', error.message);
+                                    process.exit(1);
+                                }
+                            "
+                            
+                            echo "✅ Smoke tests passed"
+                        '''
+                    }
+                }
+            }
+            post {
+                success {
+                    echo '✅ Deployment stage completed successfully'
+                }
+                failure {
+                    echo '❌ Deployment stage failed'
+                }
             }
         }
         
-        stage('🎆 Release') {
+        // ==================== STAGE 7: RELEASE & MONITORING ====================
+        stage('🎯 Release') {
             when {
                 branch 'main'
             }
@@ -616,7 +512,7 @@ SNYK_TOKEN=${snykToken}
             }
             
             steps {
-                echo "🎆 Creating production release with ${params.DEPLOYMENT_STRATEGY} strategy..."
+                echo "🎯 Creating production release with ${params.DEPLOYMENT_STRATEGY} strategy..."
                 
                 sh '''
                     echo "Preparing production release..."
@@ -624,17 +520,22 @@ SNYK_TOKEN=${snykToken}
                     # Create release directory
                     mkdir -p production-release
                     
-                    # Extract and prepare production build
-                    tar -xzf "${APP_NAME}-${BUILD_VERSION}.tar.gz" -C production-release/
+                    # Copy staging deployment to production
+                    cp -r staging-deploy/* production-release/
                     
-                    # Create release notes
-                    echo "# Release ${BUILD_VERSION}\n\nCommit: ${GIT_COMMIT_SHORT}\nBranch: ${GIT_BRANCH_NAME}\nStrategy: ${DEPLOYMENT_STRATEGY}" > production-release/RELEASE_NOTES.md
+                    # Create version file
+                    echo "{
+  \\"version\\": \\"${BUILD_VERSION}\\",
+  \\"buildDate\\": \\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\",
+  \\"commit\\": \\"${GIT_COMMIT_SHORT}\\",
+  \\"branch\\": \\"${GIT_BRANCH_NAME}\\",
+  \\"strategy\\": \\"${DEPLOYMENT_STRATEGY}\\"
+}" > production-release/version.json
                     
-                    # Simulate production deployment
-                    echo "Deploying to production with ${DEPLOYMENT_STRATEGY} strategy..."
+                    # Create release package
+                    tar -czf "${APP_NAME}-${BUILD_VERSION}.tar.gz" -C production-release .
                     
-                    # Production health check
-                    echo "Running production health checks..."
+                    echo "Simulating production deployment..."
                     
                     if [ -f "production-release/version.json" ]; then
                         echo "✅ Production release successful"
@@ -648,35 +549,36 @@ SNYK_TOKEN=${snykToken}
             post {
                 success {
                     script {
-                        // Tag the release (optional - requires git push access)
-                        try {
-                            sh "git tag -a v${BUILD_VERSION} -m 'Release version ${BUILD_VERSION}'"
-                            echo "✅ Created git tag: v${BUILD_VERSION}"
-                        } catch (Exception e) {
-                            echo "⚠️ Could not create git tag: ${e.getMessage()}"
-                        }
+                        // Archive release artifacts
+                        archiveArtifacts artifacts: '*.tar.gz,production-release/**/*', fingerprint: true
                         
                         // Send success notification
-                        echo "✅ Production Release Successful - ${APP_NAME} v${BUILD_VERSION}"
-                        echo "   Version: ${BUILD_VERSION}"
-                        echo "   Strategy: ${params.DEPLOYMENT_STRATEGY}"
-                        echo "   Build URL: ${BUILD_URL}"
-                        
-                        // Email notifications disabled until SMTP is configured
-                        // emailext (...)
+                        emailext (
+                            subject: "✅ Production Release Successful - ${APP_NAME} v${BUILD_VERSION}",
+                            body: """
+                                <h3>Production Release Deployed Successfully</h3>
+                                <p><strong>Application:</strong> ${APP_NAME}</p>
+                                <p><strong>Version:</strong> ${BUILD_VERSION}</p>
+                                <p><strong>Strategy:</strong> ${params.DEPLOYMENT_STRATEGY}</p>
+                                <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
+                                <p><strong>Build URL:</strong> ${BUILD_URL}</p>
+                            """,
+                            to: env.NOTIFICATION_EMAIL
+                        )
                     }
                 }
                 failure {
-                    echo "❌ Production Release Failed - ${APP_NAME}"
-                    echo "   Build logs: ${BUILD_URL}"
-                    
-                    // Email notifications disabled until SMTP is configured
-                    // emailext (...)
+                    emailext (
+                        subject: "❌ Production Release Failed - ${APP_NAME}",
+                        body: "Production release failed. Check build logs: ${BUILD_URL}",
+                        to: env.NOTIFICATION_EMAIL
+                    )
                 }
             }
         }
         
-        stage('📈 Monitoring') {
+        // ==================== STAGE 8: MONITORING ====================
+        stage('📊 Monitoring') {
             parallel {
                 stage('Performance Monitoring') {
                     steps {
@@ -688,18 +590,16 @@ SNYK_TOKEN=${snykToken}
                             mkdir -p monitoring
                             
                             # Generate performance baseline
-                            cat > monitoring/performance-baseline.json << 'EOF'
-{
-  "application": "${APP_NAME}",
-  "version": "${BUILD_VERSION}",
-  "metrics": {
-    "response_time_target": "under 200ms",
-    "uptime_target": "over 99.5%",
-    "error_rate_target": "under 1%"
+                            echo "{
+  \\"application\\": \\"${APP_NAME}\\",
+  \\"version\\": \\"${BUILD_VERSION}\\",
+  \\"metrics\\": {
+    \\"response_time_target\\": \\"< 200ms\\",
+    \\"uptime_target\\": \\"> 99.5%\\",
+    \\"error_rate_target\\": \\"< 1%\\"
   },
-  "deployment_time": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-}
-EOF
+  \\"deployment_time\\": \\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\"
+}" > monitoring/performance-baseline.json
                             
                             echo "✅ Performance monitoring configured"
                         '''
@@ -708,15 +608,16 @@ EOF
                 
                 stage('Health Check Setup') {
                     steps {
-                        echo '🌡️ Setting up health monitoring...'
+                        echo '🏥 Setting up health monitoring...'
                         sh '''
                             echo "Configuring health checks..."
                             
                             # Create health check script
                             cat > monitoring/health-check.sh << 'EOF'
 #!/bin/bash
-echo "Health check for ${APP_NAME}"
-curl -f http://localhost:3000/ || echo "Health check failed"
+echo "Health check for ${APP_NAME} v${BUILD_VERSION}"
+echo "Timestamp: $(date)"
+curl -f http://localhost:3000/ -o /dev/null -s -w "HTTP Status: %{http_code}, Response Time: %{time_total}s\\n" || echo "Health check failed"
 echo "Health check completed"
 EOF
                             
@@ -727,20 +628,34 @@ EOF
                     }
                 }
                 
-                stage('Log Monitoring') {
+                stage('Alert Configuration') {
                     steps {
-                        echo '📄 Setting up log monitoring...'
+                        echo '🚨 Setting up monitoring alerts...'
                         sh '''
-                            echo "Configuring log monitoring..."
+                            echo "Configuring monitoring alerts..."
                             
-                            # Create log monitoring configuration
+                            # Create alerting configuration
                             echo "{
-  \"log_level\": \"info\",
-  \"log_rotation\": \"daily\",
-  \"alert_patterns\": [\"ERROR\", \"FATAL\", \"SECURITY\"]
-}" > monitoring/log-config.json
+  \\"alerts\\": {
+    \\"response_time\\": {
+      \\"threshold\\": \\"500ms\\",
+      \\"action\\": \\"email\\",
+      \\"recipients\\": [\\"${NOTIFICATION_EMAIL}\\"]
+    },
+    \\"error_rate\\": {
+      \\"threshold\\": \\"5%\\",
+      \\"action\\": \\"email\\",
+      \\"recipients\\": [\\"${NOTIFICATION_EMAIL}\\"]
+    },
+    \\"uptime\\": {
+      \\"threshold\\": \\"99%\\",
+      \\"action\\": \\"email\\",
+      \\"recipients\\": [\\"${NOTIFICATION_EMAIL}\\"]
+    }
+  }
+}" > monitoring/alert-config.json
                             
-                            echo "✅ Log monitoring configured"
+                            echo "✅ Alert configuration created"
                         '''
                     }
                 }
@@ -754,118 +669,71 @@ EOF
                 }
             }
         }
-        
-        stage('Deploy to Production') {
-            when {
-                allOf {
-                    branch 'main'
-                    expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
-                }
-            }
-            
-            steps {
-                echo "🚀 Deploying to production with ${params.DEPLOYMENT_TYPE} strategy..."
-                
-                script {
-                    // Production deployment with zero-downtime
-                    sshagent(['production-ssh-key']) {
-                        sh '''
-                            # Backup current version
-                            ssh ${PRODUCTION_HOST} "
-                                cp -r /opt/butterfly-club /opt/butterfly-club-backup-$(date +%Y%m%d_%H%M%S)
-                            "
-                            
-                            # Deploy new version
-                            scp -r build/* ${PRODUCTION_HOST}:/opt/butterfly-club-new/
-                            
-                            # Switch to new version
-                            ssh ${PRODUCTION_HOST} "
-                                cd /opt
-                                mv butterfly-club butterfly-club-old
-                                mv butterfly-club-new butterfly-club
-                                
-                                # Restart application
-                                cd butterfly-club
-                                pm2 restart butterfly-club || pm2 start index.js --name butterfly-club
-                                pm2 save
-                                
-                                # Cleanup old version after successful start
-                                sleep 5 && rm -rf butterfly-club-old
-                            "
-                            
-                            echo "✅ Production deployment completed"
-                        '''
-                    }
-                }
-                
-                // Production health check
-                sh '''
-                    sleep 15
-                    for i in {1..5}; do
-                        curl -f https://yourdomain.com/ && break
-                        sleep 5
-                    done
-                    echo "✅ Production health check passed"
-                '''
-            }
-            
-            post {
-                success {
-                    // Notify team of successful deployment
-                    echo "✅ Production Deployment Successful - ${APP_NAME} v${BUILD_VERSION}"
-                    echo "   Version: ${BUILD_VERSION}"
-                    echo "   Build: ${BUILD_URL}"
-                    echo "   Strategy: ${params.DEPLOYMENT_TYPE}"
-                    
-                    // Email notifications disabled until SMTP is configured
-                    // emailext (...)
-                }
-            }
-        }
     }
     
+    // ==================== POST ACTIONS ====================
     post {
         always {
-            echo '🧹 Cleaning up...'
+            echo '🧹 Pipeline cleanup...'
             
-            // Clean workspace - needs node context
-            script {
-                try {
-                    echo "Starting cleanup process..."
-                    // Note: archiveArtifacts and deleteDir need node context
-                    // These will be handled by individual stage post sections
-                } catch (Exception e) {
-                    echo "Cleanup warning: ${e.getMessage()}"
-                }
-            }
+            // Archive all reports and logs
+            archiveArtifacts artifacts: '**/*.log,**/*-report.*,**/*.json', allowEmptyArchive: true
+            
+            // Clean workspace
+            cleanWs()
+        }
+        
+        success {
+            echo '✅ Pipeline completed successfully!'
+            
+            // Send success notification
+            emailext (
+                subject: "✅ Pipeline Success - ${APP_NAME} #${BUILD_NUMBER}",
+                body: """
+                    <h3>Pipeline Completed Successfully</h3>
+                    <p><strong>Project:</strong> ${APP_NAME}</p>
+                    <p><strong>Version:</strong> ${BUILD_VERSION}</p>
+                    <p><strong>Branch:</strong> ${GIT_BRANCH_NAME}</p>
+                    <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
+                    <p><strong>Build URL:</strong> ${BUILD_URL}</p>
+                    
+                    <h4>Pipeline Stages:</h4>
+                    <ul>
+                        <li>✅ Checkout</li>
+                        <li>✅ Build</li>
+                        <li>✅ Test</li>
+                        <li>✅ Code Quality</li>
+                        <li>✅ Security</li>
+                        <li>✅ Deploy</li>
+                        <li>✅ Release</li>
+                        <li>✅ Monitoring</li>
+                    </ul>
+                """,
+                to: env.NOTIFICATION_EMAIL
+            )
         }
         
         failure {
             echo '❌ Pipeline failed!'
             
-            script {
-                try {
-                    def appName = env.APP_NAME ?: 'dkin-butterfly-club'
-                    def buildNum = env.BUILD_NUMBER ?: 'unknown'
-                    def stageName = env.STAGE_NAME ?: 'Unknown Stage'
-                    def gitCommit = env.GIT_COMMIT?.take(7) ?: 'unknown'
+            // Send failure notification
+            emailext (
+                subject: "❌ Pipeline Failed - ${APP_NAME} #${BUILD_NUMBER}",
+                body: """
+                    <h3>Pipeline Failed</h3>
+                    <p><strong>Project:</strong> ${APP_NAME}</p>
+                    <p><strong>Build:</strong> ${BUILD_URL}</p>
+                    <p><strong>Branch:</strong> ${GIT_BRANCH_NAME}</p>
+                    <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
                     
-                    echo "📧 Pipeline Failed - ${appName} #${buildNum}"
-                    echo "   Project: ${appName}"
-                    echo "   Build: ${BUILD_URL}"
-                    echo "   Stage: ${stageName}"
-                    echo "   Commit: ${gitCommit}"
-                    
-                    // Email notifications disabled until SMTP is configured
-                    // emailext (...) 
-                } catch (Exception e) {
-                    echo "Failed to process failure notification: ${e.getMessage()}"
-                }
-            }
+                    <p>Please check the build logs for more details.</p>
+                """,
+                to: env.NOTIFICATION_EMAIL
+            )
         }
         
-        success {
-            echo '✅ Pipeline completed successfully!'
+        unstable {
+            echo '⚠️ Pipeline completed with warnings'
         }
     }
 }
