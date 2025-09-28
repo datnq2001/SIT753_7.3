@@ -243,7 +243,11 @@ MAINTENANCE_MODE=false
                     }
                     post {
                         always {
-                            publishCheckStyleResults pattern: 'eslint-report.xml'
+                            script {
+                                if (fileExists('eslint-report.xml')) {
+                                    recordIssues enabledForFailure: false, tools: [checkStyle(pattern: 'eslint-report.xml')]
+                                }
+                            }
                             archiveArtifacts artifacts: 'eslint-report.xml', allowEmptyArchive: true
                         }
                     }
