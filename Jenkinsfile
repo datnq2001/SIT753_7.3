@@ -91,17 +91,16 @@ pipeline {
                 echo '🚀 Building application...'
                 
                 script {
-                    // Create .env file from Jenkins credentials
-                    writeFile file: '.env', text: """
-NODE_ENV=${NODE_ENV}
+                    // Create .env file with default values  
+                    writeFile file: '.env', text: """NODE_ENV=${NODE_ENV}
 PORT=3000
 
 DB_PATH=./mySurveyDB.db
 DB_TYPE=sqlite3
 
-JWT_SECRET=${JWT_SECRET}
-SESSION_SECRET=${SESSION_SECRET}
-ENCRYPTION_KEY=${ENCRYPTION_KEY}
+JWT_SECRET=default-jwt-secret-change-in-production
+SESSION_SECRET=default-session-secret-change-in-production
+ENCRYPTION_KEY=default-encryption-key-change-in-production
 
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
@@ -109,7 +108,7 @@ SUBMIT_RATE_LIMIT_MAX=5
 
 ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
 
-SNYK_TOKEN=${SNYK_TOKEN}
+SNYK_TOKEN=
 
 APP_NAME=dKin Butterfly Club
 APP_VERSION=${BUILD_VERSION}
