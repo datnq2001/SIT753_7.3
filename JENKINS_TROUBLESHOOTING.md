@@ -300,9 +300,45 @@ echo "   Build: ${BUILD_URL}"
 
 ---
 
+### ✅ Issue #10: RESOLVED - Missing GitHub Token Credential
+
+**❌ Error Message:**
+```
+ERROR: github-token
+Finished: FAILURE
+```
+
+**🔍 Root Cause:** 
+Pipeline fails when `github-token` credential is not configured in Jenkins, even though GitHub API access is only needed for advanced features.
+
+**✅ Solution Applied:**
+```groovy
+# Before (BROKEN):
+environment {
+    GITHUB_TOKEN = credentials('github-token')
+}
+
+# After (FIXED):
+environment {
+    // GITHUB_TOKEN = credentials('github-token')  // Optional - for GitHub API access
+}
+
+# Also made git operations optional:
+try {
+    sh "git tag -a v${BUILD_VERSION} -m 'Release version ${BUILD_VERSION}'"
+    echo "✅ Created git tag: v${BUILD_VERSION}"
+} catch (Exception e) {
+    echo "⚠️ Could not create git tag: ${e.getMessage()}"
+}
+```
+
+**🎯 Status:** ✅ **FIXED** - Made GitHub token completely optional for basic CI/CD execution
+
+---
+
 ## 🔧 Other Potential Jenkins Pipeline Issues
 
-### ❌ Issue #10: Node.js Not Found
+### ❌ Issue #11: Node.js Not Found
 **Error:** `node: command not found`
 
 **Solution:**
@@ -310,7 +346,7 @@ echo "   Build: ${BUILD_URL}"
 2. Ensure NodeJS-20 is configured and auto-install enabled
 3. Restart Jenkins if needed
 
-### ❌ Issue #11: Credentials Not Found  
+### ❌ Issue #12: Credentials Not Found  
 **Error:** `could not resolve credential 'github-token'`
 
 **Solution:**
@@ -323,7 +359,7 @@ echo "   Build: ${BUILD_URL}"
 2. Check credential IDs match exactly (case-sensitive)
 3. Verify credentials are in Global scope
 
-### ❌ Issue #12: GitHub Authentication Failed
+### ❌ Issue #13: GitHub Authentication Failed
 **Error:** `Authentication failed` or `Couldn't find any revision to build`
 
 **Solution:**
@@ -332,7 +368,7 @@ echo "   Build: ${BUILD_URL}"
 3. Test repository access with token
 4. Ensure repository URL is correct
 
-### ❌ Issue #13: Snyk Authentication Failed
+### ❌ Issue #14: Snyk Authentication Failed
 **Error:** `Snyk auth failed`
 
 **Solution:**
@@ -341,7 +377,7 @@ echo "   Build: ${BUILD_URL}"
 3. Verify token in Snyk dashboard
 4. Update Jenkins credential
 
-### ❌ Issue #14: ESLint Configuration Issues
+### ❌ Issue #15: ESLint Configuration Issues
 **Error:** `ESLint couldn't find an eslint.config.js file`
 
 **Solution:**
@@ -349,7 +385,7 @@ echo "   Build: ${BUILD_URL}"
 2. If issues persist, add .eslintrc.js to repository
 3. Or modify pipeline to use different linting approach
 
-### ❌ Issue #15: Permission Denied on Scripts
+### ❌ Issue #16: Permission Denied on Scripts
 **Error:** `Permission denied` on security_audit.sh
 
 **Solution:**
