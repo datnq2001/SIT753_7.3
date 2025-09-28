@@ -26,7 +26,7 @@ pipeline {
         PRODUCTION_HOST = 'localhost'
         
         // Monitoring & Notifications
-        NOTIFICATION_EMAIL = 'datnq57.aa@gmail.com'
+        NOTIFICATION_EMAIL = 'datnq2001@gmail.com'
         
         // Quality gates
         COVERAGE_THRESHOLD = '80'
