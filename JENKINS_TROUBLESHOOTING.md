@@ -2,7 +2,7 @@
 
 ## 🚨 Common Pipeline Issues & Solutions
 
-### ✅ Issue #1: RESOLVED - Jenkinsfile Syntax Error
+### ✅ Issue #1: RESOLVED - Jenkinsfile Syntax Error (Line 260)
 
 **❌ Error Message:**
 ```
@@ -28,9 +28,35 @@ find . -name "*.js" -not -path "./node_modules/*" -exec du -h {} \\; >> complexi
 
 ---
 
+### ✅ Issue #2: RESOLVED - Jenkinsfile Syntax Error (Line 354)
+
+**❌ Error Message:**
+```
+org.codehaus.groovy.control.MultipleCompilationErrorsException: startup failed:
+WorkflowScript: 354: unexpected char: '\' @ line 354, column 49.
+             if grep -r "password\|secret\|
+                                 ^
+```
+
+**🔍 Root Cause:** 
+Improper escape of pipe character in regex pattern. The `|` in grep regex wasn't properly escaped for Groovy string parsing.
+
+**✅ Solution Applied:**
+```groovy
+# Before (BROKEN):
+if grep -r "password\|secret\|key\|token" --include="*.js" --exclude-dir=node_modules
+
+# After (FIXED):  
+if grep -r "password\\|secret\\|key\\|token" --include="*.js" --exclude-dir=node_modules
+```
+
+**🎯 Status:** ✅ **FIXED** - Committed to main branch
+
+---
+
 ## 🔧 Other Potential Jenkins Pipeline Issues
 
-### ❌ Issue #2: Node.js Not Found
+### ❌ Issue #3: Node.js Not Found
 **Error:** `node: command not found`
 
 **Solution:**
@@ -38,7 +64,7 @@ find . -name "*.js" -not -path "./node_modules/*" -exec du -h {} \\; >> complexi
 2. Ensure NodeJS-20 is configured and auto-install enabled
 3. Restart Jenkins if needed
 
-### ❌ Issue #3: Credentials Not Found  
+### ❌ Issue #4: Credentials Not Found  
 **Error:** `could not resolve credential 'github-token'`
 
 **Solution:**
@@ -51,7 +77,7 @@ find . -name "*.js" -not -path "./node_modules/*" -exec du -h {} \\; >> complexi
 2. Check credential IDs match exactly (case-sensitive)
 3. Verify credentials are in Global scope
 
-### ❌ Issue #4: GitHub Authentication Failed
+### ❌ Issue #5: GitHub Authentication Failed
 **Error:** `Authentication failed` or `Couldn't find any revision to build`
 
 **Solution:**
@@ -60,7 +86,7 @@ find . -name "*.js" -not -path "./node_modules/*" -exec du -h {} \\; >> complexi
 3. Test repository access with token
 4. Ensure repository URL is correct
 
-### ❌ Issue #5: Snyk Authentication Failed
+### ❌ Issue #6: Snyk Authentication Failed
 **Error:** `Snyk auth failed`
 
 **Solution:**
@@ -69,7 +95,7 @@ find . -name "*.js" -not -path "./node_modules/*" -exec du -h {} \\; >> complexi
 3. Verify token in Snyk dashboard
 4. Update Jenkins credential
 
-### ❌ Issue #6: ESLint Configuration Issues
+### ❌ Issue #7: ESLint Configuration Issues
 **Error:** `ESLint couldn't find an eslint.config.js file`
 
 **Solution:**
@@ -77,7 +103,7 @@ find . -name "*.js" -not -path "./node_modules/*" -exec du -h {} \\; >> complexi
 2. If issues persist, add .eslintrc.js to repository
 3. Or modify pipeline to use different linting approach
 
-### ❌ Issue #7: Permission Denied on Scripts
+### ❌ Issue #8: Permission Denied on Scripts
 **Error:** `Permission denied` on security_audit.sh
 
 **Solution:**
@@ -244,6 +270,10 @@ which node && node --version
 
 ---
 
-**🎯 Current Status: Jenkinsfile Syntax Error FIXED**
+**🎯 Current Status: ALL JENKINSFILE SYNTAX ERRORS FIXED**
+
+✅ **2 Syntax Errors Resolved:**
+- Line 260: Escape character issue in find command (\\;)
+- Line 354: Pipe character issue in grep regex (\\|)
 
 Pipeline should now execute successfully with all 8 stages! 🚀
