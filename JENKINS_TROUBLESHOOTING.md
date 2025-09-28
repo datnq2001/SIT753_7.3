@@ -54,9 +54,39 @@ if grep -r "password\\|secret\\|key\\|token" --include="*.js" --exclude-dir=node
 
 ---
 
+### ✅ Issue #3: RESOLVED - Node.js Tool Configuration Error
+
+**❌ Error Message:**
+```
+org.codehaus.groovy.control.MultipleCompilationErrorsException: startup failed:
+WorkflowScript: 6: Tool type "nodejs" does not have an install of "NodeJS-20" configured - did you mean "node24"? @ line 6, column 16.
+           nodejs 'NodeJS-20'
+                  ^
+```
+
+**🔍 Root Cause:** 
+Jenkins Node.js tool name mismatch. The Jenkinsfile referenced "NodeJS-20" but Jenkins instance has "node24" configured as the tool name.
+
+**✅ Solution Applied:**
+```groovy
+# Before (BROKEN):
+tools {
+    nodejs 'NodeJS-20'
+}
+
+# After (FIXED):
+tools {
+    nodejs 'node24'
+}
+```
+
+**🎯 Status:** ✅ **FIXED** - Updated tool configuration to match Jenkins setup
+
+---
+
 ## 🔧 Other Potential Jenkins Pipeline Issues
 
-### ❌ Issue #3: Node.js Not Found
+### ❌ Issue #4: Node.js Not Found
 **Error:** `node: command not found`
 
 **Solution:**
@@ -64,7 +94,7 @@ if grep -r "password\\|secret\\|key\\|token" --include="*.js" --exclude-dir=node
 2. Ensure NodeJS-20 is configured and auto-install enabled
 3. Restart Jenkins if needed
 
-### ❌ Issue #4: Credentials Not Found  
+### ❌ Issue #5: Credentials Not Found  
 **Error:** `could not resolve credential 'github-token'`
 
 **Solution:**
@@ -77,7 +107,7 @@ if grep -r "password\\|secret\\|key\\|token" --include="*.js" --exclude-dir=node
 2. Check credential IDs match exactly (case-sensitive)
 3. Verify credentials are in Global scope
 
-### ❌ Issue #5: GitHub Authentication Failed
+### ❌ Issue #6: GitHub Authentication Failed
 **Error:** `Authentication failed` or `Couldn't find any revision to build`
 
 **Solution:**
@@ -86,7 +116,7 @@ if grep -r "password\\|secret\\|key\\|token" --include="*.js" --exclude-dir=node
 3. Test repository access with token
 4. Ensure repository URL is correct
 
-### ❌ Issue #6: Snyk Authentication Failed
+### ❌ Issue #7: Snyk Authentication Failed
 **Error:** `Snyk auth failed`
 
 **Solution:**
@@ -95,7 +125,7 @@ if grep -r "password\\|secret\\|key\\|token" --include="*.js" --exclude-dir=node
 3. Verify token in Snyk dashboard
 4. Update Jenkins credential
 
-### ❌ Issue #7: ESLint Configuration Issues
+### ❌ Issue #8: ESLint Configuration Issues
 **Error:** `ESLint couldn't find an eslint.config.js file`
 
 **Solution:**
@@ -103,7 +133,7 @@ if grep -r "password\\|secret\\|key\\|token" --include="*.js" --exclude-dir=node
 2. If issues persist, add .eslintrc.js to repository
 3. Or modify pipeline to use different linting approach
 
-### ❌ Issue #8: Permission Denied on Scripts
+### ❌ Issue #9: Permission Denied on Scripts
 **Error:** `Permission denied` on security_audit.sh
 
 **Solution:**
