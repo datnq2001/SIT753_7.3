@@ -3,7 +3,7 @@ pipeline {
     
     // Global tools configuration
     tools {
-        nodejs 'NodeJS-20'
+        nodejs 'node24'
     }
     
     // Environment variables and credentials
@@ -45,7 +45,6 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES')
         retry(2)
         skipStagesAfterUnstable()
-        ansiColor('xterm')
         timestamps()
     }
     
