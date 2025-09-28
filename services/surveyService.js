@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 const { config } = require('../config/env').init();
 
 /**
@@ -16,15 +17,27 @@ class SurveyService {
    */
   async connect() {
     return new Promise((resolve, reject) => {
-      this.db = new sqlite3.Database(this.dbPath, (err) => {
-        if (err) {
-          console.error('❌ Database connection error:', err.message);
-          reject(err);
-        } else {
-          console.log('✅ Connected to SQLite database');
-          this.initializeTables().then(resolve).catch(reject);
+      try {
+        // Ensure database directory exists
+        const dbDir = path.dirname(this.dbPath);
+        if (!fs.existsSync(dbDir)) {
+          fs.mkdirSync(dbDir, { recursive: true });
+          console.log(`📁 Created database directory: ${dbDir}`);
         }
-      });
+
+        this.db = new sqlite3.Database(this.dbPath, (err) => {
+          if (err) {
+            console.error('❌ Database connection error:', err.message);
+            reject(err);
+          } else {
+            console.log('✅ Connected to SQLite database');
+            this.initializeTables().then(resolve).catch(reject);
+          }
+        });
+      } catch (error) {
+        console.error('❌ Failed to create database directory:', error.message);
+        reject(error);
+      }
     });
   }
 
