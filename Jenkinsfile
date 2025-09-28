@@ -351,7 +351,7 @@ MAINTENANCE_MODE=false
                             echo "Scanning for potential secrets..."
                             
                             # Check for hardcoded secrets (excluding config files)
-                            if grep -r "password\|secret\|key\|token" --include="*.js" --exclude-dir=node_modules --exclude-dir=config . | grep -v "process.env" | grep -v "example"; then
+                            if grep -r "password\\|secret\\|key\\|token" --include="*.js" --exclude-dir=node_modules --exclude-dir=config . | grep -v "process.env" | grep -v "example"; then
                                 echo "⚠️ Warning: Potential hardcoded secrets found" > secret-scan.txt
                             else
                                 echo "✅ No hardcoded secrets detected" > secret-scan.txt
