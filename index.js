@@ -40,7 +40,7 @@ app.use(helmet({
 app.use(cors({
   origin: config.cors.allowedOrigins,
   credentials: true,
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200
 }));
@@ -81,6 +81,12 @@ app.use(bodyParser.urlencoded({
   parameterLimit: 1000
 }));
 
+// JSON parsing middleware for API endpoints
+app.use(express.json({
+  limit: '10mb',
+  strict: true
+}));
+
 // Template engine configuration
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -97,6 +103,9 @@ app.use('/images', express.static(path.join(__dirname, 'images'), {
 // Disable x-powered-by header for additional security
 app.disable('x-powered-by');
 
+// Import API routes
+const surveyApiRoutes = require('./routes/surveyRoutes');
+
 // Connect to SQLite3 database using environment configuration
 const dbPath = path.isAbsolute(config.database.path) 
   ? config.database.path 
@@ -110,6 +119,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.log(`✅ Connected to SQLite database: ${dbPath}`);
   }
 });
+
+// Mount API routes
+app.use('/api/surveys', surveyApiRoutes);
 
 // GET route to render survey form
 app.get('/', (req, res) => {

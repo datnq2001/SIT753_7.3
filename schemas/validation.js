@@ -95,10 +95,54 @@ const surveyIdParamSchema = z.object({
     .transform((val) => parseInt(val, 10))
 });
 
+// API-specific validation schemas
+const apiSurveyCreateSchema = z.object({
+  firstname: nameSchema,
+  surname: nameSchema,
+  email: emailSchema,
+  address: z.string().trim().min(1, "Address is required").max(200, "Address too long"),
+  suburb: z.string().trim().min(1, "Suburb is required").max(50, "Suburb too long"),
+  postcode: z.string().trim().regex(/^\d{4}$/, "Postcode must be 4 digits"),
+  phone: z.string().trim().regex(/^[\d\s\+\-\(\)]+$/, "Invalid phone number format"),
+  q1radio: z.string().regex(/^[1-5]$/, "Q1 rating must be 1-5"),
+  q2radio: z.string().regex(/^[1-5]$/, "Q2 rating must be 1-5"),  
+  q3radio: z.string().regex(/^[1-5]$/, "Q3 rating must be 1-5"),
+  butterflyColour: butterflyColorSchema,
+  comments: commentSchema
+});
+
+const apiSurveyUpdateSchema = z.object({
+  firstname: nameSchema.optional(),
+  surname: nameSchema.optional(),
+  email: emailSchema.optional(),
+  address: z.string().trim().min(1, "Address is required").max(200, "Address too long").optional(),
+  suburb: z.string().trim().min(1, "Suburb is required").max(50, "Suburb too long").optional(),
+  postcode: z.string().trim().regex(/^\d{4}$/, "Postcode must be 4 digits").optional(),
+  phone: z.string().trim().regex(/^[\d\s\+\-\(\)]+$/, "Invalid phone number format").optional(),
+  q1radio: z.string().regex(/^[1-5]$/, "Q1 rating must be 1-5").optional(),
+  q2radio: z.string().regex(/^[1-5]$/, "Q2 rating must be 1-5").optional(),
+  q3radio: z.string().regex(/^[1-5]$/, "Q3 rating must be 1-5").optional(),
+  butterflyColour: butterflyColorSchema.optional(),
+  comments: commentSchema.optional()
+}).refine(data => Object.keys(data).length > 0, {
+  message: "At least one field must be provided for update"
+});
+
+const apiQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  sortBy: z.enum(['id', 'created_at', 'firstname', 'surname', 'email']).default('created_at'),
+  order: z.enum(['asc', 'desc']).default('desc')
+});
+
 module.exports = {
   surveyFormSchema,
   surveysQuerySchema,
   surveyIdParamSchema,
+  // API schemas
+  apiSurveyCreateSchema,
+  apiSurveyUpdateSchema,
+  apiQuerySchema,
   // Individual schemas for reuse
   emailSchema,
   nameSchema,
