@@ -658,15 +658,18 @@ MAINTENANCE_MODE=false
                             mkdir -p monitoring
                             
                             # Generate performance baseline
-                            echo "{
-  \"application\": \"${APP_NAME}\",
-  \"version\": \"${BUILD_VERSION}\",
-  \"metrics\": {
-    \"response_time_target\": \"< 200ms\",
-    \"uptime_target\": \"> 99.5%\",
-    \"error_rate_target\": \"< 1%\"
-  }
-}" > monitoring/performance-baseline.json
+                            cat > monitoring/performance-baseline.json << 'EOF'
+{
+  "application": "${APP_NAME}",
+  "version": "${BUILD_VERSION}",
+  "metrics": {
+    "response_time_target": "under 200ms",
+    "uptime_target": "over 99.5%",
+    "error_rate_target": "under 1%"
+  },
+  "deployment_time": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+EOF
                             
                             echo "✅ Performance monitoring configured"
                         '''
