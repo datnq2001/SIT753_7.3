@@ -246,7 +246,8 @@ MAINTENANCE_MODE=false
                     }
                     post {
                         always {
-                            publishCheckStyleResults pattern: 'eslint-report.xml'
+                            echo "📊 ESLint report generated: eslint-report.xml"
+                        // publishCheckStyleResults pattern: 'eslint-report.xml'  // Requires Checkstyle plugin
                             archiveArtifacts artifacts: 'eslint-report.xml', allowEmptyArchive: true
                         }
                     }
