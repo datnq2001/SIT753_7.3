@@ -501,7 +501,7 @@ MAINTENANCE_MODE=false
                     fi
                     
                     # Check for sensitive data in files (improved pattern to avoid false positives)
-                    SECRET_MATCHES=$(grep -r "password[[:space:]]*[=:]\\|secret[[:space:]]*[=:]\\|api[_-]key\\|auth[_-]key\\|private[_-]key\\|access[_-]token" --include="*.js" --exclude-dir=node_modules . | grep -v "process.env" | grep -v "config\\." | grep -v "Object\\.keys" | grep -v "encodeURIComponent" | grep -v "// " | head -5)
+                    SECRET_MATCHES=$(grep -r "password[[:space:]]*[=:]\\|secret[[:space:]]*[=:]\\|api[_-]key\\|auth[_-]key\\|private[_-]key\\|access[_-]token" --include="*.js" --exclude-dir=node_modules . | grep -v "process.env" | grep -v "config\\." | grep -v "Object\\.keys" | grep -v "encodeURIComponent" | grep -v "getEnvVar" | grep -v "// " | head -5)
                     if [ -n "$SECRET_MATCHES" ]; then
                         echo "⚠️ Warning: Potential hardcoded secrets found:"
                         echo "$SECRET_MATCHES"
