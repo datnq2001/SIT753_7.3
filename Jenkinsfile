@@ -687,16 +687,14 @@ EOF
         always {
             echo '🧹 Pipeline cleanup...'
             
-            // Archive artifacts within node context
+            // Archive artifacts and clean workspace
             script {
                 try {
-                    node {
-                        // Archive all reports and logs  
-                        archiveArtifacts artifacts: '**/*.log,**/*-report.*,**/*.json', allowEmptyArchive: true
-                        
-                        // Clean workspace
-                        cleanWs()
-                    }
+                    // Archive all reports and logs  
+                    archiveArtifacts artifacts: '**/*.log,**/*-report.*,**/*.json', allowEmptyArchive: true
+                    
+                    // Clean workspace
+                    cleanWs()
                 } catch (Exception e) {
                     echo "Cleanup warning: ${e.getMessage()}"
                 }
