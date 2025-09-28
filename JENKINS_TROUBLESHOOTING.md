@@ -199,9 +199,110 @@ steps {
 
 ---
 
+### ✅ Issue #7: RESOLVED - Archive Artifacts Context Error  
+
+**❌ Error Message:**
+```
+Cleanup warning: Required context class hudson.FilePath is missing
+Perhaps you forgot to surround the step with a step that provides this, such as: node
+```
+
+**🔍 Root Cause:** 
+The `archiveArtifacts` step in post `always` section requires node context, similar to `deleteDir()`.
+
+**✅ Solution Applied:**
+```groovy
+# Before (BROKEN):
+post {
+    always {
+        archiveArtifacts artifacts: '**/*.log', allowEmptyArchive: true
+        deleteDir()
+    }
+}
+
+# After (FIXED):
+post {
+    always {
+        script {
+            echo "Starting cleanup process..."
+            // Note: archiveArtifacts handled by individual stage post sections
+        }
+    }
+}
+```
+
+**🎯 Status:** ✅ **FIXED** - Removed context-dependent steps from global post section
+
+---
+
+### ✅ Issue #8: RESOLVED - Missing Application Credentials
+
+**❌ Error Message:**
+```
+ERROR: jwt-secret
+Finished: FAILURE
+```
+
+**🔍 Root Cause:** 
+Pipeline fails if application credentials (`jwt-secret`, `session-secret`, `encryption-key`) are not configured, even though they're only needed for production deployment.
+
+**✅ Solution Applied:**
+```groovy
+# Before (BROKEN):
+environment {
+    JWT_SECRET = credentials('jwt-secret')
+    SESSION_SECRET = credentials('session-secret') 
+    ENCRYPTION_KEY = credentials('encryption-key')
+}
+
+# After (FIXED):
+environment {
+    // Application secrets (will be handled in deployment stages if needed)
+    // JWT_SECRET = credentials('jwt-secret')  // Optional - for production deployment
+    // SESSION_SECRET = credentials('session-secret')  // Optional
+    // ENCRYPTION_KEY = credentials('encryption-key')  // Optional
+}
+```
+
+**🎯 Status:** ✅ **FIXED** - Made application credentials optional for basic pipeline execution
+
+---
+
+### ✅ Issue #9: RESOLVED - Email Configuration Errors
+
+**❌ Error Message:**
+```
+Connection error sending email, retrying once more in 10 seconds...
+Failed after second try sending email
+```
+
+**🔍 Root Cause:** 
+Email notifications fail when SMTP server is not configured in Jenkins, causing pipeline to hang and fail.
+
+**✅ Solution Applied:**
+```groovy
+# Before (BROKEN):
+emailext (
+    subject: "❌ Pipeline Failed - ${APP_NAME} #${BUILD_NUMBER}",
+    body: "...",
+    to: "admin@yourdomain.com"
+)
+
+# After (FIXED):
+echo "📧 Pipeline Failed - ${appName} #${buildNum}"
+echo "   Project: ${appName}"
+echo "   Build: ${BUILD_URL}"
+// Email notifications disabled until SMTP is configured
+// emailext (...)
+```
+
+**🎯 Status:** ✅ **FIXED** - Replaced email notifications with console logging
+
+---
+
 ## 🔧 Other Potential Jenkins Pipeline Issues
 
-### ❌ Issue #7: Node.js Not Found
+### ❌ Issue #10: Node.js Not Found
 **Error:** `node: command not found`
 
 **Solution:**
@@ -209,7 +310,7 @@ steps {
 2. Ensure NodeJS-20 is configured and auto-install enabled
 3. Restart Jenkins if needed
 
-### ❌ Issue #8: Credentials Not Found  
+### ❌ Issue #11: Credentials Not Found  
 **Error:** `could not resolve credential 'github-token'`
 
 **Solution:**
@@ -222,7 +323,7 @@ steps {
 2. Check credential IDs match exactly (case-sensitive)
 3. Verify credentials are in Global scope
 
-### ❌ Issue #9: GitHub Authentication Failed
+### ❌ Issue #12: GitHub Authentication Failed
 **Error:** `Authentication failed` or `Couldn't find any revision to build`
 
 **Solution:**
@@ -231,7 +332,7 @@ steps {
 3. Test repository access with token
 4. Ensure repository URL is correct
 
-### ❌ Issue #10: Snyk Authentication Failed
+### ❌ Issue #13: Snyk Authentication Failed
 **Error:** `Snyk auth failed`
 
 **Solution:**
@@ -240,7 +341,7 @@ steps {
 3. Verify token in Snyk dashboard
 4. Update Jenkins credential
 
-### ❌ Issue #11: ESLint Configuration Issues
+### ❌ Issue #14: ESLint Configuration Issues
 **Error:** `ESLint couldn't find an eslint.config.js file`
 
 **Solution:**
@@ -248,7 +349,7 @@ steps {
 2. If issues persist, add .eslintrc.js to repository
 3. Or modify pipeline to use different linting approach
 
-### ❌ Issue #12: Permission Denied on Scripts
+### ❌ Issue #15: Permission Denied on Scripts
 **Error:** `Permission denied` on security_audit.sh
 
 **Solution:**
