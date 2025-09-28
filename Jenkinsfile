@@ -6,7 +6,7 @@ pipeline {
         nodejs 'node24'
     }
     
-    // Environment variables and credentials
+    // Environment                    echo "Setting up database..."va                    echo "Verifying environment configuration..."iables and credentials
     environment {
         NODE_ENV = 'development'  // Use development mode for CI/CD to bypass production validation
         APP_NAME = 'dkin-butterfly-club'
@@ -50,9 +50,9 @@ pipeline {
     
     stages {
         // ==================== STAGE 1: CHECKOUT ====================
-        stage('🔄 Checkout') {
+        stage('Checkout') {
             steps {
-                echo '🔄 Checking out source code from GitHub...'
+                echo 'Checking out source code from GitHub...'
                 checkout scm
                 
                 script {
@@ -69,7 +69,7 @@ pipeline {
                     
                     env.BUILD_VERSION = "${env.BUILD_NUMBER}-${env.GIT_COMMIT_SHORT}"
                     
-                    echo "📋 Build Info:"
+                    echo "Build Info:"
                     echo "   Version: ${env.BUILD_VERSION}"
                     echo "   Branch: ${env.GIT_BRANCH_NAME}"
                     echo "   Commit: ${env.GIT_COMMIT_SHORT}"
@@ -77,18 +77,18 @@ pipeline {
             }
             post {
                 success {
-                    echo '✅ Checkout completed successfully'
+                    echo 'Checkout completed successfully'
                 }
                 failure {
-                    echo '❌ Checkout failed'
+                    echo 'Checkout failed'
                 }
             }
         }
         
         // ==================== STAGE 2: BUILD ====================
-        stage('🚀 Build') {
+        stage('Build') {
             steps {
-                echo '🚀 Building application...'
+                echo 'Building application...'
                 
                 script {
                     // Create .env file with default values  
@@ -124,7 +124,7 @@ MAINTENANCE_MODE=false
                 }
                 
                 sh '''
-                    echo "📦 Installing dependencies..."
+                    echo "Installing dependencies..."
                     npm ci
                     
                     echo "�️ Setting up database..."
@@ -133,28 +133,28 @@ MAINTENANCE_MODE=false
                     echo "�🔍 Verifying environment configuration..."
                     node -e "console.log('Environment check:', require('./config/env').init().config.app.name)"
                     
-                    echo "📋 Dependency audit..."
+                    echo "Dependency audit..."
                     npm audit --audit-level moderate || true
                     
-                    echo "🚀 Build completed successfully"
+                    echo "Build completed successfully"
                 '''
             }
             post {
                 success {
-                    echo '✅ Build stage completed successfully'
+                    echo 'Build stage completed successfully'
                 }
                 failure {
-                    echo '❌ Build stage failed'
+                    echo 'Build stage failed'
                 }
             }
         }
         
         // ==================== STAGE 3: TEST ====================
-        stage('🧪 Test') {
+        stage('Test') {
             parallel {
                 stage('Unit Tests') {
                     steps {
-                        echo '🧪 Running unit tests...'
+                        echo 'Running unit tests...'
                         sh '''
                             echo "Creating test environment..."
                             cp .env.example .env.test
@@ -177,7 +177,7 @@ MAINTENANCE_MODE=false
                 
                 stage('Integration Tests') {
                     steps {
-                        echo '🔗 Running integration tests...'
+                        echo 'Running integration tests...'
                         sh '''
                             echo "Starting server for integration tests..."
                             timeout 30 node index.js &
@@ -201,7 +201,7 @@ MAINTENANCE_MODE=false
                 
                 stage('Performance Tests') {
                     steps {
-                        echo '📈 Running performance tests...'
+                        echo 'Running performance tests...'
                         sh '''
                             echo "Performance baseline check..."
                             # Basic performance metrics
@@ -215,20 +215,20 @@ MAINTENANCE_MODE=false
             }
             post {
                 success {
-                    echo '✅ All tests passed successfully'
+                    echo 'All tests passed successfully'
                 }
                 failure {
-                    echo '❌ Some tests failed'
+                    echo 'Some tests failed'
                 }
             }
         }
         
         // ==================== STAGE 4: CODE QUALITY ====================
-        stage('📋 Code Quality') {
+        stage('Code Quality') {
             parallel {
                 stage('ESLint Analysis') {
                     steps {
-                        echo '🔍 Running ESLint code analysis...'
+                        echo 'Running ESLint code analysis...'
                         sh '''
                             # Install ESLint if not present
                             npm install eslint --save-dev || true
@@ -255,7 +255,7 @@ MAINTENANCE_MODE=false
                 
                 stage('Code Complexity') {
                     steps {
-                        echo '📊 Analyzing code complexity...'
+                        echo 'Analyzing code complexity...'
                         sh '''
                             echo "Analyzing code complexity..."
                             
@@ -277,16 +277,16 @@ MAINTENANCE_MODE=false
                 
                 stage('Documentation Check') {
                     steps {
-                        echo '📝 Checking documentation quality...'
+                        echo 'Checking documentation quality...'
                         sh '''
                             echo "Checking documentation files..."
                             
                             # Check for required documentation
                             for doc in README.md ENVIRONMENT_SETUP.md SECURITY_HARDENING.md; do
                                 if [ -f "$doc" ]; then
-                                    echo "✅ $doc exists"
+                                    echo "$doc exists"
                                 else
-                                    echo "❌ $doc missing"
+                                    echo "$doc missing"
                                 fi
                             done
                             
@@ -303,20 +303,20 @@ MAINTENANCE_MODE=false
             }
             post {
                 success {
-                    echo '✅ Code quality checks passed'
+                    echo 'Code quality checks passed'
                 }
                 failure {
-                    echo '❌ Code quality issues found'
+                    echo 'Code quality issues found'
                 }
             }
         }
         
         // ==================== STAGE 5: SECURITY ====================
-        stage('🔒 Security') {
+        stage('Security') {
             parallel {
                 stage('Vulnerability Scanning') {
                     steps {
-                        echo '🔍 Running security vulnerability scan...'
+                        echo 'Running security vulnerability scan...'
                         sh '''
                             # Install and run Snyk security scanner
                             npm install -g snyk || true
@@ -342,22 +342,22 @@ MAINTENANCE_MODE=false
                 
                 stage('Secret Detection') {
                     steps {
-                        echo '🔍 Scanning for hardcoded secrets...'
+                        echo 'Scanning for hardcoded secrets...'
                         sh '''
                             echo "Scanning for potential secrets..."
                             
                             # Check for hardcoded secrets (excluding config files)
                             if grep -r "password\\|secret\\|key\\|token" --include="*.js" --exclude-dir=node_modules --exclude-dir=config . | grep -v "process.env" | grep -v "example"; then
-                                echo "⚠️ Warning: Potential hardcoded secrets found" > secret-scan.txt
+                                echo "Warning: Potential hardcoded secrets found" > secret-scan.txt
                             else
-                                echo "✅ No hardcoded secrets detected" > secret-scan.txt
+                                echo "No hardcoded secrets detected" > secret-scan.txt
                             fi
                             
                             # Check .env is not committed
                             if git ls-files | grep -q "^.env$"; then
-                                echo "⚠️ Warning: .env file found in git" >> secret-scan.txt
+                                echo "Warning: .env file found in git" >> secret-scan.txt
                             else
-                                echo "✅ .env file properly excluded" >> secret-scan.txt
+                                echo ".env file properly excluded" >> secret-scan.txt
                             fi
                             
                             cat secret-scan.txt
@@ -372,7 +372,7 @@ MAINTENANCE_MODE=false
                 
                 stage('Security Audit') {
                     steps {
-                        echo '🛡️ Running security audit...'
+                        echo 'Running security audit...'
                         sh '''
                             echo "Running security hardening checks..."
                             
@@ -397,16 +397,16 @@ MAINTENANCE_MODE=false
             }
             post {
                 success {
-                    echo '✅ Security scans completed successfully'
+                    echo 'Security scans completed successfully'
                 }
                 failure {
-                    echo '❌ Security issues detected'
+                    echo 'Security issues detected'
                 }
             }
         }
         
         // ==================== STAGE 6: DEPLOY ====================
-        stage('🚀 Deploy') {
+        stage('Deploy') {
             parallel {
                 stage('Deploy to Staging') {
                     when {
@@ -418,7 +418,7 @@ MAINTENANCE_MODE=false
                     }
                     
                     steps {
-                        echo '🚀 Deploying to staging environment...'
+                        echo 'Deploying to staging environment...'
                         
                         sh '''
                             echo "Preparing staging deployment..."
@@ -440,26 +440,26 @@ MAINTENANCE_MODE=false
                             
                             # Deployment verification
                             if [ -f "staging-deploy/index.js" ]; then
-                                echo "✅ Staging deployment successful"
+                                echo "Staging deployment successful"
                             else
-                                echo "❌ Staging deployment failed"
+                                echo "Staging deployment failed"
                                 exit 1
                             fi
                         '''
                     }
                     post {
                         success {
-                            echo '✅ Staging deployment completed'
+                            echo 'Staging deployment completed'
                         }
                         failure {
-                            echo '❌ Staging deployment failed'
+                            echo 'Staging deployment failed'
                         }
                     }
                 }
                 
                 stage('Smoke Tests') {
                     steps {
-                        echo '🔥 Running smoke tests...'
+                        echo 'Running smoke tests...'
                         sh '''
                             echo "Running smoke tests on deployed application..."
                             
@@ -475,23 +475,23 @@ MAINTENANCE_MODE=false
                                 }
                             "
                             
-                            echo "✅ Smoke tests passed"
+                            echo "Smoke tests passed"
                         '''
                     }
                 }
             }
             post {
                 success {
-                    echo '✅ Deployment stage completed successfully'
+                    echo 'Deployment stage completed successfully'
                 }
                 failure {
-                    echo '❌ Deployment stage failed'
+                    echo 'Deployment stage failed'
                 }
             }
         }
         
         // ==================== STAGE 7: RELEASE & MONITORING ====================
-        stage('🎯 Release') {
+        stage('Release') {
             when {
                 branch 'main'
             }
@@ -514,7 +514,7 @@ MAINTENANCE_MODE=false
             }
             
             steps {
-                echo "🎯 Creating production release with ${params.DEPLOYMENT_STRATEGY} strategy..."
+                echo "Creating production release with ${params.DEPLOYMENT_STRATEGY} strategy..."
                 
                 sh '''
                     echo "Preparing production release..."
@@ -540,10 +540,10 @@ MAINTENANCE_MODE=false
                     echo "Simulating production deployment..."
                     
                     if [ -f "production-release/version.json" ]; then
-                        echo "✅ Production release successful"
+                        echo "Production release successful"
                         cat production-release/version.json
                     else
-                        echo "❌ Production release failed"
+                        echo "Production release failed"
                         exit 1
                     fi
                 '''
@@ -556,7 +556,7 @@ MAINTENANCE_MODE=false
                         
                         // Send success notification
                         emailext (
-                            subject: "✅ Production Release Successful - ${APP_NAME} v${BUILD_VERSION}",
+                            subject: "Production Release Successful - ${APP_NAME} v${BUILD_VERSION}",
                             mimeType: 'text/html',
                             from: 'datnq2001@gmail.com',
                             body: """
@@ -573,7 +573,7 @@ MAINTENANCE_MODE=false
                 }
                 failure {
                     emailext (
-                        subject: "❌ Production Release Failed - ${APP_NAME}",
+                        subject: "Production Release Failed - ${APP_NAME}",
                         mimeType: 'text/html',
                         from: 'datnq2001@gmail.com',
                         body: """
@@ -589,11 +589,11 @@ MAINTENANCE_MODE=false
         }
         
         // ==================== STAGE 8: MONITORING ====================
-        stage('📊 Monitoring') {
+        stage('Monitoring') {
             parallel {
                 stage('Performance Monitoring') {
                     steps {
-                        echo '📈 Setting up performance monitoring...'
+                        echo 'Setting up performance monitoring...'
                         sh '''
                             echo "Configuring performance monitoring..."
                             
@@ -612,14 +612,14 @@ MAINTENANCE_MODE=false
   \\"deployment_time\\": \\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\"
 }" > monitoring/performance-baseline.json
                             
-                            echo "✅ Performance monitoring configured"
+                            echo "Performance monitoring configured"
                         '''
                     }
                 }
                 
                 stage('Health Check Setup') {
                     steps {
-                        echo '🏥 Setting up health monitoring...'
+                        echo 'Setting up health monitoring...'
                         sh '''
                             echo "Configuring health checks..."
                             
@@ -634,14 +634,14 @@ EOF
                             
                             chmod +x monitoring/health-check.sh
                             
-                            echo "✅ Health monitoring configured"
+                            echo "Health monitoring configured"
                         '''
                     }
                 }
                 
                 stage('Alert Configuration') {
                     steps {
-                        echo '🚨 Setting up monitoring alerts...'
+                        echo 'Setting up monitoring alerts...'
                         sh '''
                             echo "Configuring monitoring alerts..."
                             
@@ -666,7 +666,7 @@ EOF
   }
 }" > monitoring/alert-config.json
                             
-                            echo "✅ Alert configuration created"
+                            echo "Alert configuration created"
                         '''
                     }
                 }
@@ -676,7 +676,7 @@ EOF
                     archiveArtifacts artifacts: 'monitoring/**/*', allowEmptyArchive: true
                 }
                 success {
-                    echo '✅ Monitoring setup completed successfully'
+                    echo 'Monitoring setup completed successfully'
                 }
             }
         }
@@ -685,7 +685,7 @@ EOF
     // ==================== POST ACTIONS ====================
     post {
         always {
-            echo '🧹 Pipeline cleanup...'
+            echo 'Pipeline cleanup...'
             
             // Archive artifacts and clean workspace
             script {
@@ -702,11 +702,11 @@ EOF
         }
         
         success {
-            echo '✅ Pipeline completed successfully!'
+            echo 'Pipeline completed successfully!'
             
             // Send success notification
             emailext (
-                subject: "✅ Pipeline Success - ${APP_NAME} #${BUILD_NUMBER}",
+                subject: "Pipeline Success - ${APP_NAME} #${BUILD_NUMBER}",
                 mimeType: 'text/html',
                 from: 'datnq2001@gmail.com',
                 body: """
@@ -719,14 +719,14 @@ EOF
                     
                     <h4>Pipeline Stages:</h4>
                     <ul>
-                        <li>✅ Checkout</li>
-                        <li>✅ Build</li>
-                        <li>✅ Test</li>
-                        <li>✅ Code Quality</li>
-                        <li>✅ Security</li>
-                        <li>✅ Deploy</li>
-                        <li>✅ Release</li>
-                        <li>✅ Monitoring</li>
+                        <li>Checkout</li>
+                        <li>Build</li>
+                        <li>Test</li>
+                        <li>Code Quality</li>
+                        <li>Security</li>
+                        <li>Deploy</li>
+                        <li>Release</li>
+                        <li>Monitoring</li>
                     </ul>
                 """,
                 to: env.NOTIFICATION_EMAIL
@@ -734,11 +734,11 @@ EOF
         }
         
         failure {
-            echo '❌ Pipeline failed!'
+            echo 'Pipeline failed!'
             
             // Send failure notification
             emailext (
-                subject: "❌ Pipeline Failed - ${APP_NAME} #${BUILD_NUMBER}",
+                subject: "Pipeline Failed - ${APP_NAME} #${BUILD_NUMBER}",
                 mimeType: 'text/html',
                 from: 'datnq2001@gmail.com',
                 body: """
@@ -755,7 +755,7 @@ EOF
         }
         
         unstable {
-            echo '⚠️ Pipeline completed with warnings'
+            echo 'Pipeline completed with warnings'
         }
     }
 }

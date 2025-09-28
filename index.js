@@ -113,10 +113,10 @@ const dbPath = path.isAbsolute(config.database.path)
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('❌ Failed to connect to database:', err.message);
+    console.error('Failed to connect to database:', err.message);
     process.exit(1);
   } else {
-    console.log(`✅ Connected to SQLite database: ${dbPath}`);
+    console.log(`Connected to SQLite database: ${dbPath}`);
   }
 });
 
@@ -312,9 +312,9 @@ app.use((err, req, res, next) => {
 
 // Start server with environment configuration
 app.listen(port, host, () => {
-  console.log(`🚀 ${config.app.name} v${config.app.version}`);
+  console.log(`${config.app.name} v${config.app.version}`);
   console.log(`🌐 Server running at http://${host}:${port}`);
   console.log(`📁 Environment: ${config.nodeEnv}`);
-  console.log(`📊 Analytics: ${config.features.enableAnalytics ? 'Enabled' : 'Disabled'}`);
-  console.log(`🔧 Maintenance Mode: ${config.features.maintenanceMode ? 'ON' : 'OFF'}`);
+  console.log(`Analytics: ${config.features.enableAnalytics ? 'Enabled' : 'Disabled'}`);
+  console.log(`Maintenance Mode: ${config.features.maintenanceMode ? 'ON' : 'OFF'}`);
 });

@@ -2,7 +2,7 @@
 const http = require('http');
 
 function testSurveysEndpoint() {
-  console.log('🔍 Testing /surveys endpoint...');
+  console.log('Testing /surveys endpoint...');
   
   // First, start the server
   const server = require('./index.js');
@@ -27,14 +27,14 @@ function testSurveysEndpoint() {
 
       res.on('end', () => {
         if (res.statusCode === 200) {
-          console.log('✅ /surveys endpoint working!');
+          console.log('/surveys endpoint working!');
           if (data.includes('Survey List')) {
-            console.log('✅ Survey List page loaded successfully');
+            console.log('Survey List page loaded successfully');
           } else {
-            console.log('⚠️  Response received but may not be correct page');
+            console.log('WARNING: Response received but may not be correct page');
           }
         } else {
-          console.log('❌ /surveys endpoint returned error');
+          console.log('/surveys endpoint returned error');
           console.log('Response body:', data.substring(0, 500));
         }
         process.exit(0);
@@ -42,7 +42,7 @@ function testSurveysEndpoint() {
     });
 
     req.on('error', (e) => {
-      console.error(`❌ Request error: ${e.message}`);
+      console.error(`Request error: ${e.message}`);
       process.exit(1);
     });
 

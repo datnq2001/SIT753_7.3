@@ -18,10 +18,10 @@ class SurveyService {
     return new Promise((resolve, reject) => {
       this.db = new sqlite3.Database(this.dbPath, (err) => {
         if (err) {
-          console.error('❌ Database connection error:', err.message);
+          console.error('Database connection error:', err.message);
           reject(err);
         } else {
-          console.log('✅ Connected to SQLite database');
+          console.log('Connected to SQLite database');
           this.initializeTables().then(resolve).catch(reject);
         }
       });
@@ -64,10 +64,10 @@ class SurveyService {
 
       this.db.run(createTableSQL, (err) => {
         if (err) {
-          console.error('❌ Error creating surveys table:', err.message);
+          console.error('Error creating surveys table:', err.message);
           reject(err);
         } else {
-          console.log('✅ Surveys table initialized');
+          console.log('Surveys table initialized');
           resolve();
         }
       });
@@ -369,9 +369,9 @@ class SurveyService {
     if (this.db) {
       this.db.close((err) => {
         if (err) {
-          console.error('❌ Error closing database:', err.message);
+          console.error('Error closing database:', err.message);
         } else {
-          console.log('✅ Database connection closed');
+          console.log('Database connection closed');
         }
       });
     }

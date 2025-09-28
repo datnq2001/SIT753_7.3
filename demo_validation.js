@@ -1,12 +1,12 @@
 // Simple validation demo script
 const { surveyFormSchema, surveysQuerySchema } = require('./schemas/validation');
 
-console.log('🔍 Testing Zod Validation Schemas...\n');
+console.log('Testing Zod Validation Schemas...\n');
 
 // Test cases
 const testCases = [
   {
-    name: '✅ Valid Survey Data',
+    name: 'Valid Survey Data',
     schema: surveyFormSchema,
     data: {
       firstname: 'John',
@@ -20,7 +20,7 @@ const testCases = [
     }
   },
   {
-    name: '❌ Missing Required Fields',
+    name: 'Missing Required Fields',
     schema: surveyFormSchema,
     data: {
       surname: 'Doe',
@@ -28,7 +28,7 @@ const testCases = [
     }
   },
   {
-    name: '❌ Invalid Email Domain',
+    name: 'Invalid Email Domain',
     schema: surveyFormSchema,
     data: {
       firstname: 'John',
@@ -41,7 +41,7 @@ const testCases = [
     }
   },
   {
-    name: '❌ Invalid Question Rating',
+    name: 'Invalid Question Rating',
     schema: surveyFormSchema,
     data: {
       firstname: 'John',
@@ -54,7 +54,7 @@ const testCases = [
     }
   },
   {
-    name: '❌ Name with Numbers',
+    name: 'Name with Numbers',
     schema: surveyFormSchema,
     data: {
       firstname: 'John123', // Invalid - contains numbers
@@ -67,7 +67,7 @@ const testCases = [
     }
   },
   {
-    name: '✅ Valid Query Parameters',
+    name: 'Valid Query Parameters',
     schema: surveysQuerySchema,
     data: {
       page: '1',
@@ -77,7 +77,7 @@ const testCases = [
     }
   },
   {
-    name: '❌ Invalid Query Parameters',
+    name: 'Invalid Query Parameters',
     schema: surveysQuerySchema,
     data: {
       page: '0', // Invalid - must be > 0
@@ -94,12 +94,12 @@ testCases.forEach((testCase, index) => {
   const result = testCase.schema.safeParse(testCase.data);
   
   if (result.success) {
-    console.log('   ✅ PASS - Validation successful');
+    console.log('   PASS - Validation successful');
     if (testCase.name.includes('Query Parameters')) {
-      console.log('   📊 Parsed data:', JSON.stringify(result.data, null, 2));
+      console.log('   Parsed data:', JSON.stringify(result.data, null, 2));
     }
   } else {
-    console.log('   ❌ FAIL - Validation errors:');
+    console.log('   FAIL - Validation errors:');
     result.error.issues.forEach(issue => {
       const field = issue.path.join('.');
       console.log(`      • ${field}: ${issue.message}`);
@@ -109,6 +109,6 @@ testCases.forEach((testCase, index) => {
   console.log('');
 });
 
-console.log('🎯 Demo completed! All validation schemas are working as expected.');
+console.log('Demo completed! All validation schemas are working as expected.');
 console.log('\n📖 For more details, see VALIDATION_IMPLEMENTATION.md');
-console.log('🚀 To start the server: node index.js');
+console.log('To start the server: node index.js');

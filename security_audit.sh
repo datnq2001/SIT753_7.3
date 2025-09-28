@@ -10,11 +10,11 @@ curl -s -I http://localhost:3000 | grep -E "(Content-Security-Policy|X-Frame-Opt
 echo
 echo "2. CORS CONFIGURATION:"
 echo "----------------------"
-echo "✅ Allowed origin (localhost:3000):"
-curl -s -H "Origin: http://localhost:3000" -I http://localhost:3000 | grep "Access-Control-Allow-Origin" || echo "❌ CORS not working"
+echo "Allowed origin (localhost:3000):"
+curl -s -H "Origin: http://localhost:3000" -I http://localhost:3000 | grep "Access-Control-Allow-Origin" || echo "CORS not working"
 
-echo "✅ Blocked origin (malicious.com):"
-curl -s -H "Origin: http://malicious.com" -I http://localhost:3000 | grep "Access-Control-Allow-Origin" || echo "✅ Correctly blocked"
+echo "Blocked origin (malicious.com):"
+curl -s -H "Origin: http://malicious.com" -I http://localhost:3000 | grep "Access-Control-Allow-Origin" || echo "Correctly blocked"
 
 echo
 echo "3. RATE LIMITING STATUS:"
@@ -24,7 +24,7 @@ curl -s -I http://localhost:3000 | grep -E "RateLimit-(Limit|Remaining|Reset)"
 echo
 echo "4. X-POWERED-BY HEADER REMOVAL:"
 echo "--------------------------------"
-curl -s -I http://localhost:3000 | grep "X-Powered-By" || echo "✅ X-Powered-By header successfully removed"
+curl -s -I http://localhost:3000 | grep "X-Powered-By" || echo "X-Powered-By header successfully removed"
 
 echo
 echo "=== END AUDIT ==="

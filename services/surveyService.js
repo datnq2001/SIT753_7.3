@@ -27,10 +27,10 @@ class SurveyService {
 
         this.db = new sqlite3.Database(this.dbPath, (err) => {
           if (err) {
-            console.error('❌ Database connection error:', err.message);
+            console.error('Database connection error:', err.message);
             reject(err);
           } else {
-            console.log('✅ Connected to SQLite database');
+            console.log('Connected to SQLite database');
             this.initializeTables().then(resolve).catch(reject);
           }
         });

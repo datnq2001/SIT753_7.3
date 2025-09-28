@@ -105,7 +105,7 @@ const testCases = [
 ];
 
 async function runTests() {
-  console.log('🚀 Starting Zod validation tests...\n');
+  console.log('Starting Zod validation tests...\n');
   
   for (let i = 0; i < testCases.length; i++) {
     const testCase = testCases[i];
@@ -153,9 +153,9 @@ async function runTests() {
       const actualResult = isSuccess ? 'success' : 'error';
       
       if (actualResult === testCase.expectedResult) {
-        console.log(`✅ PASS - Expected ${testCase.expectedResult}, got ${actualResult}`);
+        console.log(`PASS - Expected ${testCase.expectedResult}, got ${actualResult}`);
       } else {
-        console.log(`❌ FAIL - Expected ${testCase.expectedResult}, got ${actualResult}`);
+        console.log(`FAIL - Expected ${testCase.expectedResult}, got ${actualResult}`);
       }
       
       // Show error details
@@ -175,7 +175,7 @@ async function runTests() {
 
 // Test query parameter validation for /surveys endpoint
 async function testQueryValidation() {
-  console.log('\n🔍 Testing query parameter validation...\n');
+  console.log('\nTesting query parameter validation...\n');
   
   const queryTests = [
     {
@@ -212,9 +212,9 @@ async function testQueryValidation() {
       const actualResult = response.status === 200 ? 'success' : 'error';
       
       if (actualResult === test.expectedResult) {
-        console.log(`✅ PASS - Expected ${test.expectedResult}, got ${actualResult}`);
+        console.log(`PASS - Expected ${test.expectedResult}, got ${actualResult}`);
       } else {
-        console.log(`❌ FAIL - Expected ${test.expectedResult}, got ${actualResult}`);
+        console.log(`FAIL - Expected ${test.expectedResult}, got ${actualResult}`);
         if (response.data && response.data.error) {
           console.log(`   Error: ${response.data.error}`);
         }

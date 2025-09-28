@@ -174,16 +174,16 @@ function validateConfig() {
 function init() {
   try {
     validateConfig();
-    console.log(`✅ Configuration loaded successfully for ${config.nodeEnv} environment`);
+    console.log(`Configuration loaded successfully for ${config.nodeEnv} environment`);
     
     if (config.isDevelopment) {
-      console.log(`🔧 Server will run on: http://${config.server.host}:${config.server.port}`);
+      console.log(`Server will run on: http://${config.server.host}:${config.server.port}`);
       console.log(`📁 Database path: ${config.database.path}`);
     }
     
     return { config };
   } catch (error) {
-    console.error('❌ Configuration Error:', error.message);
+    console.error('Configuration Error:', error.message);
     process.exit(1);
   }
 }
