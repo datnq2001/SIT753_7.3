@@ -84,9 +84,124 @@ tools {
 
 ---
 
+### ✅ Issue #4: RESOLVED - Post Section Context Errors
+
+**❌ Error Message:**
+```
+Error when executing always post condition:
+org.jenkinsci.plugins.workflow.steps.MissingContextVariableException: Required context class hudson.FilePath is missing
+Perhaps you forgot to surround the deleteDir step with a step that provides this, such as: node
+```
+
+**🔍 Root Cause:** 
+The `deleteDir()` step in post sections requires a node context, but post sections run outside the node block by default.
+
+**✅ Solution Applied:**
+```groovy
+# Before (BROKEN):
+post {
+    always {
+        deleteDir()
+    }
+}
+
+# After (FIXED):
+post {
+    always {
+        script {
+            try {
+                if (env.NODE_NAME) {
+                    deleteDir()
+                }
+            } catch (Exception e) {
+                echo "Cleanup warning: ${e.getMessage()}"
+            }
+        }
+    }
+}
+```
+
+**🎯 Status:** ✅ **FIXED** - Added proper context checking and error handling
+
+---
+
+### ✅ Issue #5: RESOLVED - Missing Environment Variables in Post Section
+
+**❌ Error Message:**
+```
+groovy.lang.MissingPropertyException: No such property: APP_NAME for class: groovy.lang.Binding
+```
+
+**🔍 Root Cause:** 
+Environment variables defined in the pipeline environment section may not be available in post sections context.
+
+**✅ Solution Applied:**
+```groovy
+# Before (BROKEN):
+failure {
+    emailext (
+        subject: "❌ Pipeline Failed - ${APP_NAME} #${BUILD_NUMBER}",
+        // ...
+    )
+}
+
+# After (FIXED):
+failure {
+    script {
+        def appName = env.APP_NAME ?: 'dkin-butterfly-club'
+        def buildNum = env.BUILD_NUMBER ?: 'unknown'
+        emailext (
+            subject: "❌ Pipeline Failed - ${appName} #${buildNum}",
+            // ...
+        )
+    }
+}
+```
+
+**🎯 Status:** ✅ **FIXED** - Added fallback values and proper variable access
+
+---
+
+### ✅ Issue #6: RESOLVED - Missing Snyk Credentials
+
+**❌ Error Message:**
+```
+ERROR: snyk-token
+Finished: FAILURE
+```
+
+**🔍 Root Cause:** 
+Pipeline fails if `snyk-token` credential is not configured in Jenkins, even though security scanning should be optional.
+
+**✅ Solution Applied:**
+```groovy
+# Before (BROKEN):
+environment {
+    SNYK_TOKEN = credentials('snyk-token')
+}
+
+# After (FIXED):
+steps {
+    script {
+        try {
+            withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+                // Snyk scanning with token
+            }
+        } catch (Exception e) {
+            echo "⚠️ Snyk credentials not configured. Running npm audit instead..."
+            // Fallback to npm audit
+        }
+    }
+}
+```
+
+**🎯 Status:** ✅ **FIXED** - Made Snyk credentials optional with npm audit fallback
+
+---
+
 ## 🔧 Other Potential Jenkins Pipeline Issues
 
-### ❌ Issue #4: Node.js Not Found
+### ❌ Issue #7: Node.js Not Found
 **Error:** `node: command not found`
 
 **Solution:**
@@ -94,7 +209,7 @@ tools {
 2. Ensure NodeJS-20 is configured and auto-install enabled
 3. Restart Jenkins if needed
 
-### ❌ Issue #5: Credentials Not Found  
+### ❌ Issue #8: Credentials Not Found  
 **Error:** `could not resolve credential 'github-token'`
 
 **Solution:**
@@ -107,7 +222,7 @@ tools {
 2. Check credential IDs match exactly (case-sensitive)
 3. Verify credentials are in Global scope
 
-### ❌ Issue #6: GitHub Authentication Failed
+### ❌ Issue #9: GitHub Authentication Failed
 **Error:** `Authentication failed` or `Couldn't find any revision to build`
 
 **Solution:**
@@ -116,7 +231,7 @@ tools {
 3. Test repository access with token
 4. Ensure repository URL is correct
 
-### ❌ Issue #7: Snyk Authentication Failed
+### ❌ Issue #10: Snyk Authentication Failed
 **Error:** `Snyk auth failed`
 
 **Solution:**
@@ -125,7 +240,7 @@ tools {
 3. Verify token in Snyk dashboard
 4. Update Jenkins credential
 
-### ❌ Issue #8: ESLint Configuration Issues
+### ❌ Issue #11: ESLint Configuration Issues
 **Error:** `ESLint couldn't find an eslint.config.js file`
 
 **Solution:**
@@ -133,7 +248,7 @@ tools {
 2. If issues persist, add .eslintrc.js to repository
 3. Or modify pipeline to use different linting approach
 
-### ❌ Issue #9: Permission Denied on Scripts
+### ❌ Issue #12: Permission Denied on Scripts
 **Error:** `Permission denied` on security_audit.sh
 
 **Solution:**
