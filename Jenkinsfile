@@ -12,8 +12,9 @@ pipeline {
         APP_NAME = 'dkin-butterfly-club'
         BUILD_VERSION = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'unknown'}"
         
-        // Jenkins credentials (configure these in Jenkins Credentials)
-        GITHUB_TOKEN = credentials('github-token')
+                // Jenkins credentials (configure these in Jenkins Credentials)
+        // Note: Optional credentials will be handled in script blocks
+        // GITHUB_TOKEN = credentials('github-token')  // Optional - for GitHub API access
         // SNYK_TOKEN = credentials('snyk-token')  // Optional - handled in Security stage
         // SONAR_TOKEN = credentials('sonar-token')  // Optional - handled in Code Quality stage
         
@@ -600,8 +601,13 @@ MAINTENANCE_MODE=false
             post {
                 success {
                     script {
-                        // Tag the release
-                        sh "git tag -a v${BUILD_VERSION} -m 'Release version ${BUILD_VERSION}'"
+                        // Tag the release (optional - requires git push access)
+                        try {
+                            sh "git tag -a v${BUILD_VERSION} -m 'Release version ${BUILD_VERSION}'"
+                            echo "✅ Created git tag: v${BUILD_VERSION}"
+                        } catch (Exception e) {
+                            echo "⚠️ Could not create git tag: ${e.getMessage()}"
+                        }
                         
                         // Send success notification
                         echo "✅ Production Release Successful - ${APP_NAME} v${BUILD_VERSION}"
