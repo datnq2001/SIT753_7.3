@@ -94,7 +94,12 @@ pipeline {
                 echo '� Building application...'
                 
                 script {
-                    // Create .env file from Jenkins credentials
+                    // Create .env file with default values (credentials handled separately if needed)
+                    def jwtSecret = env.JWT_SECRET ?: 'default-jwt-secret-change-in-production'
+                    def sessionSecret = env.SESSION_SECRET ?: 'default-session-secret-change-in-production'
+                    def encryptionKey = env.ENCRYPTION_KEY ?: 'default-encryption-key-change-in-production'
+                    def snykToken = env.SNYK_TOKEN ?: ''
+                    
                     writeFile file: '.env', text: """
 NODE_ENV=${NODE_ENV}
 PORT=3000
@@ -102,9 +107,9 @@ PORT=3000
 DB_PATH=./data/production.db
 DB_TYPE=sqlite3
 
-JWT_SECRET=${JWT_SECRET}
-SESSION_SECRET=${SESSION_SECRET}
-ENCRYPTION_KEY=${ENCRYPTION_KEY}
+JWT_SECRET=${jwtSecret}
+SESSION_SECRET=${sessionSecret}
+ENCRYPTION_KEY=${encryptionKey}
 
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
@@ -112,7 +117,7 @@ SUBMIT_RATE_LIMIT_MAX=5
 
 ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
 
-SNYK_TOKEN=${SNYK_TOKEN}
+SNYK_TOKEN=${snykToken}
 
 APP_NAME=dKin Butterfly Club
 APP_VERSION=${BUILD_VERSION}
