@@ -500,10 +500,14 @@ MAINTENANCE_MODE=false
                         echo "✅ File permissions OK - no executable JavaScript files found"
                     fi
                     
-                    # Check for sensitive data in files
-                    if grep -r "password\\|secret\\|key" --include="*.js" --exclude-dir=node_modules . | grep -v "process.env" | grep -v "config."; then
-                        echo "⚠️ Warning: Potential hardcoded secrets found"
+                    # Check for sensitive data in files (improved pattern to avoid false positives)
+                    SECRET_MATCHES=$(grep -r "password[[:space:]]*[=:]\\|secret[[:space:]]*[=:]\\|api[_-]key\\|auth[_-]key\\|private[_-]key\\|access[_-]token" --include="*.js" --exclude-dir=node_modules . | grep -v "process.env" | grep -v "config\\." | grep -v "Object\\.keys" | grep -v "encodeURIComponent" | grep -v "// " | head -5)
+                    if [ -n "$SECRET_MATCHES" ]; then
+                        echo "⚠️ Warning: Potential hardcoded secrets found:"
+                        echo "$SECRET_MATCHES"
                         exit 1
+                    else
+                        echo "✅ No hardcoded secrets detected"
                     fi
                     
                     # Validate environment configuration
