@@ -14,16 +14,15 @@ pipeline {
         
         // Jenkins credentials (configure these in Jenkins Credentials)
         GITHUB_TOKEN = credentials('github-token')
-        SNYK_TOKEN = credentials('snyk-token')
-        SONAR_TOKEN = credentials('sonar-token')
+        // SNYK_TOKEN = credentials('snyk-token')  // Optional - handled in Security stage
+        // SONAR_TOKEN = credentials('sonar-token')  // Optional - handled in Code Quality stage
         
         // Application secrets
         JWT_SECRET = credentials('jwt-secret')
         SESSION_SECRET = credentials('session-secret')
         ENCRYPTION_KEY = credentials('encryption-key')
         
-        // Deployment configuration
-        DEPLOY_SSH_KEY = credentials('deploy-ssh-key')
+        // Deployment configuration (SSH key handled in deployment stages)
         STAGING_HOST = 'localhost'
         PRODUCTION_HOST = 'localhost'
         
@@ -310,24 +309,40 @@ MAINTENANCE_MODE=false
                 stage('Vulnerability Scanning') {
                     steps {
                         echo '🔍 Running security vulnerability scan...'
-                        sh '''
-                            # Install and run Snyk security scanner
-                            npm install -g snyk || true
-                            
-                            # Authenticate with Snyk
-                            snyk auth ${SNYK_TOKEN} || echo "Snyk auth failed, using demo mode"
-                            
-                            # Test for vulnerabilities
-                            snyk test --json > snyk-vulnerabilities.json || echo "Snyk scan completed with issues"
-                            
-                            # Generate HTML report
-                            snyk test --json | snyk-to-html -o snyk-report.html || true
-                            
-                            # Monitor project
-                            snyk monitor --project-name="${APP_NAME}" || true
-                            
-                            echo "Vulnerability scanning completed"
-                        '''
+                        script {
+                            try {
+                                // Try to use Snyk with credentials if available
+                                withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+                                    sh '''
+                                        # Install and run Snyk security scanner
+                                        npm install -g snyk || true
+                                        
+                                        # Authenticate with Snyk
+                                        snyk auth ${SNYK_TOKEN} || echo "Snyk auth failed, using demo mode"
+                                        
+                                        # Test for vulnerabilities
+                                        snyk test --json > snyk-vulnerabilities.json || echo "Snyk scan completed with issues"
+                                        
+                                        # Generate HTML report
+                                        snyk test --json | snyk-to-html -o snyk-report.html || true
+                                        
+                                        # Monitor project
+                                        snyk monitor --project-name="${APP_NAME}" || true
+                                        
+                                        echo "Vulnerability scanning completed"
+                                    '''
+                                }
+                            } catch (Exception e) {
+                                echo "⚠️ Snyk credentials not configured. Running basic security audit instead..."
+                                sh '''
+                                    # Run npm security audit as fallback
+                                    npm audit --audit-level high --json > npm-audit.json || echo "NPM audit completed"
+                                    npm audit --audit-level high || echo "Security issues found - check npm-audit.json"
+                                    
+                                    echo "Basic security audit completed"
+                                '''
+                            }
+                        }
                     }
                     post {
                         always {
@@ -767,30 +782,50 @@ EOF
         always {
             echo '🧹 Cleaning up...'
             
-            // Clean workspace
-            deleteDir()
-            
-            // Archive logs
-            archiveArtifacts artifacts: '**/*.log', allowEmptyArchive: true
+            // Clean workspace - needs node context
+            script {
+                try {
+                    // Archive logs first
+                    archiveArtifacts artifacts: '**/*.log', allowEmptyArchive: true
+                    
+                    // Clean workspace if we have node context
+                    if (env.NODE_NAME) {
+                        deleteDir()
+                    }
+                } catch (Exception e) {
+                    echo "Cleanup warning: ${e.getMessage()}"
+                }
+            }
         }
         
         failure {
             echo '❌ Pipeline failed!'
             
-            // Notify team of failure
-            emailext (
-                subject: "❌ Pipeline Failed - ${APP_NAME} #${BUILD_NUMBER}",
-                body: """
-                    <h3>Pipeline Failed</h3>
-                    <p><strong>Project:</strong> ${APP_NAME}</p>
-                    <p><strong>Build:</strong> ${BUILD_URL}</p>
-                    <p><strong>Stage:</strong> ${env.STAGE_NAME}</p>
-                    <p><strong>Commit:</strong> ${GIT_COMMIT_SHORT}</p>
+            script {
+                try {
+                    def appName = env.APP_NAME ?: 'dkin-butterfly-club'
+                    def buildNum = env.BUILD_NUMBER ?: 'unknown'
+                    def stageName = env.STAGE_NAME ?: 'Unknown Stage'
+                    def gitCommit = env.GIT_COMMIT?.take(7) ?: 'unknown'
                     
-                    <p>Please check the build logs for more details.</p>
-                """,
-                to: "${env.CHANGE_AUTHOR_EMAIL}, devops@yourdomain.com"
-            )
+                    // Notify team of failure
+                    emailext (
+                        subject: "❌ Pipeline Failed - ${appName} #${buildNum}",
+                        body: """
+                            <h3>Pipeline Failed</h3>
+                            <p><strong>Project:</strong> ${appName}</p>
+                            <p><strong>Build:</strong> ${BUILD_URL}</p>
+                            <p><strong>Stage:</strong> ${stageName}</p>
+                            <p><strong>Commit:</strong> ${gitCommit}</p>
+                            
+                            <p>Please check the build logs for more details.</p>
+                        """,
+                        to: "admin@yourdomain.com"
+                    )
+                } catch (Exception e) {
+                    echo "Failed to send notification: ${e.getMessage()}"
+                }
+            }
         }
         
         success {
