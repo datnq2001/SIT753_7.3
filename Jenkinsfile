@@ -6,20 +6,11 @@ pipeline {
         nodejs 'node24'
     }
     
-    // Environment                    echo "Setting up database..."va                    echo "Verifying environment configuration..."iables and credentials
+    // Environment variables and credentials
     environment {
-        NODE_ENV = 'development'  // Use development mode for CI/CD to bypass production validation
+        NODE_ENV = 'development'  
         APP_NAME = 'dkin-butterfly-club'
         BUILD_VERSION = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'unknown'}"
-        
-        // Jenkins credentials (configure these in Jenkins Credentials - optional)
-        // GITHUB_TOKEN = credentials('github-token')  // Optional
-        // SNYK_TOKEN = credentials('snyk-token')      // Optional
-        
-        // Application secrets (optional - will use defaults if not configured)
-        // JWT_SECRET = credentials('jwt-secret')         // Optional
-        // SESSION_SECRET = credentials('session-secret') // Optional  
-        // ENCRYPTION_KEY = credentials('encryption-key') // Optional
         
         // Deployment configuration
         STAGING_HOST = 'localhost'
@@ -49,14 +40,13 @@ pipeline {
     }
     
     stages {
-        // ==================== STAGE 1: CHECKOUT ====================
+        // -------------------- STAGE 1: CHECKOUT --------------------
         stage('Checkout') {
             steps {
                 echo 'Checking out source code from GitHub...'
                 checkout scm
                 
                 script {
-                    // Set build metadata
                     env.GIT_COMMIT_SHORT = sh(
                         script: "git rev-parse --short HEAD",
                         returnStdout: true
@@ -85,7 +75,7 @@ pipeline {
             }
         }
         
-        // ==================== STAGE 2: BUILD ====================
+        // -------------------- STAGE 2: BUILD --------------------
         stage('Build') {
             steps {
                 echo 'Building application...'
@@ -127,10 +117,10 @@ MAINTENANCE_MODE=false
                     echo "Installing dependencies..."
                     npm ci
                     
-                    echo "�️ Setting up database..."
+                    echo " Setting up database..."
                     node createDB.js
                     
-                    echo "�🔍 Verifying environment configuration..."
+                    echo " Verifying environment configuration..."
                     node -e "console.log('Environment check:', require('./config/env').init().config.app.name)"
                     
                     echo "Dependency audit..."
@@ -149,7 +139,7 @@ MAINTENANCE_MODE=false
             }
         }
         
-        // ==================== STAGE 3: TEST ====================
+        // -------------------- STAGE 3: TEST --------------------
         stage('Test') {
             parallel {
                 stage('Unit Tests') {
@@ -223,7 +213,7 @@ MAINTENANCE_MODE=false
             }
         }
         
-        // ==================== STAGE 4: CODE QUALITY ====================
+        // -------------------- STAGE 4: CODE QUALITY --------------------
         stage('Code Quality') {
             parallel {
                 stage('ESLint Analysis') {
@@ -311,7 +301,7 @@ MAINTENANCE_MODE=false
             }
         }
         
-        // ==================== STAGE 5: SECURITY ====================
+        // -------------------- STAGE 5: SECURITY --------------------
         stage('Security') {
             parallel {
                 stage('Vulnerability Scanning') {
@@ -405,7 +395,7 @@ MAINTENANCE_MODE=false
             }
         }
         
-        // ==================== STAGE 6: DEPLOY ====================
+        // -------------------- STAGE 6: DEPLOY --------------------
         stage('Deploy') {
             parallel {
                 stage('Deploy to Staging') {
@@ -490,7 +480,7 @@ MAINTENANCE_MODE=false
             }
         }
         
-        // ==================== STAGE 7: RELEASE & MONITORING ====================
+        // -------------------- STAGE 7: RELEASE & MONITORING --------------------
         stage('Release') {
             when {
                 branch 'main'
@@ -588,7 +578,7 @@ MAINTENANCE_MODE=false
             }
         }
         
-        // ==================== STAGE 8: MONITORING ====================
+        // -------------------- STAGE 8: MONITORING --------------------
         stage('Monitoring') {
             parallel {
                 stage('Performance Monitoring') {
@@ -682,7 +672,7 @@ EOF
         }
     }
     
-    // ==================== POST ACTIONS ====================
+    // -------------------- POST ACTIONS --------------------
     post {
         always {
             echo 'Pipeline cleanup...'
